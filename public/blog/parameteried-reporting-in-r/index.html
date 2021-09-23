@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr"><head>
+  
+                           
+     
+
+
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.88.1" />
+<title>Parameterized Reporting in R | rjfranssen</title>
+
+
+<meta property="twitter:site" content="@lochnessbobster">
+<meta property="twitter:creator" content="@lochnessbobster">
+
+
+
+
+
+
+
+  
+    
+  
+<meta name="description" content="Use RMarkdown and Knitr to generate multiple interactive reports based on a set of parameters.">
+
+
+<meta property="og:site_name" content="rjfranssen">
+<meta property="og:title" content="Parameterized Reporting in R | rjfranssen">
+<meta property="og:description" content="Use RMarkdown and Knitr to generate multiple interactive reports based on a set of parameters." />
+<meta property="og:type" content="page" />
+<meta property="og:url" content="/blog/parameteried-reporting-in-r/" />
+<meta property="og:locale" content="en">
+
+
+
+
+    
+        <meta property="og:image" content="/blog/parameteried-reporting-in-r/param_report_featured.PNG" >
+        <meta property="twitter:card" content="summary_large_image">
+        <meta name="twitter:image" content="/blog/parameteried-reporting-in-r/param_report_featured.PNG" >
+    
+    
+  <meta itemprop="name" content="Parameterized Reporting in R">
+<meta itemprop="description" content="Just give me the code     Skip all this and jump to the parameterized-reporting-example.Rmd file in my parameterized-reporting repo.
+About parametrized reports     This is a parameterized report written in in R Markdown. It consists of a combination of text and code chunks and uses R, pandoc, and LaTeX to connect to a data source, create visualizations, and export a single file to html, pdf, or word without changing the code."><meta itemprop="datePublished" content="2021-01-16T00:00:00+00:00" />
+<meta itemprop="dateModified" content="2021-01-16T00:00:00+00:00" />
+<meta itemprop="wordCount" content="641"><meta itemprop="image" content="/blog/parameteried-reporting-in-r/param_report_featured.PNG">
+<meta itemprop="keywords" content="r," />
+  
+  <!--[if IE]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  <link rel="shortcut icon" href="/favicons/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/favicons/favicon.ico" type="image/x-icon">
+  
+  
+  <link rel="stylesheet" href="/style.main.min.d9554fb94d8eed9f0b53a43e8a8683492834125af6ece33cea8f9b2af158659b.css" integrity="sha256-2VVPuU2O7Z8LU6Q&#43;ioaDSSg0Elr27OM86o&#43;bKvFYZZs=" media="screen">
+  
+  
+  <script src="/panelset.min.078a92db9bd3228df502db3d9e0453c3cf3d910abe3f8deca0ad196c7071ad41.js" type="text/javascript"></script>
+  
+  
+  <script src="/main.min.e3f239a63f8fef3eb359ddeba8db9d60d003826af10cc5ff300bfd7771a96df9.js" type="text/javascript"></script>
+  
+  
+  <script src="/toc.min.272fa3955630f6cb446058a3c82414c1d32522ae6d48e2d07f3414c51275e316.js" type="text/javascript"></script>
+</head>
+<body>
+      <div class="grid-container single-sidebar">
+<header class="site-header pt4 pb2 mb4 bb b--transparent ph5 headroom z-max" role="banner">
+  <nav class="site-nav db dt-l w-100" role="navigation">
+    <a class="site-brand db dtc-l v-mid link no-underline w-100 w-33-l tc tl-l" href="/" title="Home">
+      <img src="/img/rjfranssen-blowfish-wide.png" class="dib db-l h2 w-auto" alt="rjfranssen">
+    </a>
+    <div class="site-links db dtc-l v-mid w-100 w-47-l tc tr-l mt3 mt0-l ttu tracked">
+      
+        
+        
+        
+      <a class="link f6 f5-l dib pv1 ph2 " href="/about/" title="About Blogophonic">About</a>
+      
+        
+        
+        
+      <a class="link f6 f5-l dib pv1 ph2 active" href="/blog/" title="Posts">Posts</a>
+      
+        
+        
+        
+      <a class="link f6 f5-l dib pv1 ph2 " href="/project/" title="Projects and Applications">Projects</a>
+      
+        
+        
+        
+      <a class="link f6 f5-l dib pv1 ph2 " href="https://github.com/rjfranssen" title="GitHub">GitHub</a>
+      
+      
+    </div>
+  </nav>
+</header>
+
+<main class="page-main pa4" role="main">
+  <section class="page-content mw7 center">
+    <article class="post-content pa0 pr3-l">
+      <header class="post-header">
+        <h1 class="f1 lh-solid measure-narrow mb3 fw4">Parameterized Reporting in R</h1>
+        <h4 class="f4 mt0 mb4 lh-title measure">Use RMarkdown and Knitr to generate multiple interactive reports based on a set of parameters.</h4>
+        <p class="f6 measure lh-copy mv1">By Robert Franssen in <a href="/categories/helps">helps</a> </p>
+        <p class="f7 db mv0 ttu">January 16, 2021</p>
+      </header>
+      <section class="post-body pt5 pb4">
+        
+
+
+
+<h2 id="just-give-me-the-code">Just give me the code
+  <a href="#just-give-me-the-code"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>Skip all this and jump to the 
+<a href="https://github.com/rjfranssen/parameterized-reporting/blob/main/parameterized-reporting-example.Rmd" target="_blank" rel="noopener">parameterized-reporting-example.Rmd</a> file in my 
+<a href="https://github.com/rjfranssen/parameterized-reporting" target="_blank" rel="noopener">parameterized-reporting repo</a>.</p>
+
+
+
+
+<h2 id="about-parametrized-reports">About parametrized reports
+  <a href="#about-parametrized-reports"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>This is a parameterized report written in in R Markdown. It consists of a combination of text and code chunks and uses <code>R</code>, <code>pandoc</code>, and <code>LaTeX</code> to connect to a data source, create visualizations, and export a single file to <code>html</code>, <code>pdf</code>, or <code>word</code> <em>without changing the code</em>. The resulting pages stand on their own, have no dependencies, and can be shared or stored on a central location, like git pages, a site on netlify, or a sharepoint documents library. The data and code are readily accessible for transparency and reproducibility.</p>
+<p>Each export format has its own advantages:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th style="text-align:center">html</th>
+<th style="text-align:center">word</th>
+<th style="text-align:center">pdf</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Standalone</td>
+<td style="text-align:center">X</td>
+<td style="text-align:center">X</td>
+<td style="text-align:center">X</td>
+</tr>
+<tr>
+<td>Easy print</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">X</td>
+<td style="text-align:center">X</td>
+</tr>
+<tr>
+<td>Editable</td>
+<td style="text-align:center"></td>
+<td style="text-align:center">X</td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td>Static charts/maps</td>
+<td style="text-align:center">X</td>
+<td style="text-align:center">X</td>
+<td style="text-align:center">X</td>
+</tr>
+<tr>
+<td>Interactive charts/maps</td>
+<td style="text-align:center">X</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+</tr>
+<tr>
+<td>Embed data for download</td>
+<td style="text-align:center">X</td>
+<td style="text-align:center"></td>
+<td style="text-align:center"></td>
+</tr>
+</tbody>
+</table>
+<p>For good documentation, check out:</p>
+<ul>
+<li>
+<a href="https://garrettgman.github.io/rmarkdown/developer_parameterized_reports.html" target="_blank" rel="noopener">Parameterized Reports (rmarkdown)</a></li>
+<li>
+<a href="https://bookdown.org/yihui/rmarkdown/params-knit.html#knit-with-custom-parameters" target="_blank" rel="noopener">Knitting with parameters (bookdown)</a></li>
+<li>
+<a href="https://docs.rstudio.com/connect/1.7.4/user/param-rmarkdown.html" target="_blank" rel="noopener">Parameterized R Markdown - incudes <code>marmap</code> example (rstudio)</a></li>
+<li>
+<a href="https://community.rstudio.com/t/iterate-multiple-rmarkdown-reports/43208" target="_blank" rel="noopener">Iterate multiple RMarkdown reports (rstudio community)</a></li>
+</ul>
+
+
+
+
+<h2 id="example-report-elements-for-pontiac">Example Report elements for <strong>pontiac</strong>
+  <a href="#example-report-elements-for-pontiac"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>Start by pulling down a csv from GitHub to use in this example:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">csv_url <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#d14">&#34;https://raw.githubusercontent.com/tidyverse/ggplot2/master/data-raw/mpg.csv&#34;</span>
+
+<span style="color:#900;font-weight:bold">download.file</span>(csv_url, destfile <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;mpg.csv&#34;</span>, method <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;curl&#34;</span>)
+df <span style="color:#000;font-weight:bold">&lt;-</span> data.table<span style="color:#000;font-weight:bold">::</span><span style="color:#900;font-weight:bold">fread</span>(<span style="color:#d14">&#34;mpg.csv&#34;</span>)
+</code></pre></div>
+
+
+
+<h2 id="parameter-specfic-charts">Parameter Specfic Charts
+  <a href="#parameter-specfic-charts"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>Next, I&rsquo;m going to insert the params that I defined in the <code>yml</code> header of this document into the R code to come up with some <strong>inline statistics</strong>.</p>
+<p>For example, the <code>yml</code> header of this post looks like this - look at the <code>params</code>:</p>
+<pre tabindex="0"><code>title: Parameterized Reporting in R
+author: rjfranssen
+date: '2021-01-16'
+slug: parameteried-reporting-in-r
+categories:
+  - helps
+tags:
+  - r
+params:
+  manufacturer: pontiac
+  date: !r lubridate::today()
+</code></pre><p>The manufacturer <strong>pontiac</strong> has <strong>5</strong> vehicles in this dataset.<br>
+They average <strong>17</strong> mpg city and <strong>26.4</strong> mpg highway.</p>
+<p><strong>Vehicle Counts</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">df2 <span style="color:#000;font-weight:bold">&lt;-</span> df[df<span style="color:#000;font-weight:bold">$</span>manufacturer <span style="color:#000;font-weight:bold">==</span> params<span style="color:#000;font-weight:bold">$</span>manufacturer, ]
+  
+plt <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">ggplot</span>(df2) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">geom_bar</span>( <span style="color:#900;font-weight:bold">aes</span>(x <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">as.factor</span>(cyl), fill <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">as.factor</span>(cyl)), stat <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#39;count&#39;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">scale_fill_viridis_d</span>(option <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;viridis&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">theme</span>(axis.text.x <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">element_text</span>(angle <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">45</span>, hjust <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">1</span>)) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">theme</span>(legend.position <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;none&#34;</span>)
+
+plt
+</code></pre></div><p><img src="/blog/parameteried-reporting-in-r/index_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<p><strong>MPGs</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">df2 <span style="color:#000;font-weight:bold">&lt;-</span> df[df<span style="color:#000;font-weight:bold">$</span>manufacturer <span style="color:#000;font-weight:bold">==</span> params<span style="color:#000;font-weight:bold">$</span>manufacturer, ]
+  
+plt <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">ggplot</span>(df2) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">geom_point</span>(<span style="color:#900;font-weight:bold">aes</span>(x <span style="color:#000;font-weight:bold">=</span> displ, y <span style="color:#000;font-weight:bold">=</span> hwy, color <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">as.factor</span>(year), label <span style="color:#000;font-weight:bold">=</span> model), size <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">5</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">scale_color_viridis_d</span>(option <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;viridis&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">theme</span>(axis.text.x <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">element_text</span>(angle <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">45</span>, hjust <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">1</span>)) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">theme</span>(legend.position <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;none&#34;</span>)
+
+plt
+</code></pre></div><p><img src="/blog/parameteried-reporting-in-r/index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+
+
+
+
+<h2 id="all-car-manufacturers">All Car Manufacturers
+  <a href="#all-car-manufacturers"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p><strong>Vehicle Counts</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">plt <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">ggplot</span>(df) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">geom_bar</span>( <span style="color:#900;font-weight:bold">aes</span>(manufacturer, fill <span style="color:#000;font-weight:bold">=</span> manufacturer), stat <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#39;count&#39;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">scale_fill_viridis_d</span>(option <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;viridis&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">theme</span>(axis.text.x <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">element_text</span>(angle <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">45</span>, hjust <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">1</span>)) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">theme</span>(legend.position <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;none&#34;</span>)
+
+plt
+</code></pre></div><p><img src="/blog/parameteried-reporting-in-r/index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p><strong>MPGs</strong></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">plt <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">ggplot</span>(df) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">geom_point</span>(<span style="color:#900;font-weight:bold">aes</span>(x <span style="color:#000;font-weight:bold">=</span> cty, y <span style="color:#000;font-weight:bold">=</span> hwy, color <span style="color:#000;font-weight:bold">=</span> manufacturer), alpha <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">0.6</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">scale_fill_viridis_d</span>(option <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;viridis&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">facet_wrap</span>(<span style="color:#000;font-weight:bold">~</span>manufacturer) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">theme</span>(axis.text.x <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">element_text</span>(angle <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">45</span>, hjust <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">1</span>)) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">theme</span>(legend.position <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;none&#34;</span>) 
+
+plt
+</code></pre></div><p><img src="/blog/parameteried-reporting-in-r/index_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>Lastly, I&rsquo;m going to use the below function to read in the <code>.Rmd</code> file and ouput an <code>html</code> file using the parameters as inputs. Then, I&rsquo;m going to run this function for each manufacturer in the sample dataset to generate a custom report for each manufactuer.</p>
+<p>Credit: 
+<a href="https://bookdown.org/yihui/rmarkdown/params-knit.html#knit-with-custom-parameters" target="_blank" rel="noopener">bookdown docs</a> and this 
+<a href="https://stackoverflow.com/questions/54969070/rendering-multiple-parametrized-rmarkdown-files-by-render-function-fails" target="_blank" rel="noopener">stackoverflow post</a></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#998;font-style:italic"># Function to render this rmd file as an html doc; run this in R console</span>
+render_report <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">function</span>(manufacturer <span style="color:#000;font-weight:bold">=</span> params<span style="color:#000;font-weight:bold">$</span>manufacturer, date <span style="color:#000;font-weight:bold">=</span> params<span style="color:#000;font-weight:bold">$</span>date) {
+  rmarkdown<span style="color:#000;font-weight:bold">::</span><span style="color:#900;font-weight:bold">render</span>(
+    input <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;parameterized-reporting-example.Rmd&#34;</span>,
+    output_format <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;html_document&#34;</span>,
+    params <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">list</span>(
+      manufacturer <span style="color:#000;font-weight:bold">=</span> manufacturer,
+      date <span style="color:#000;font-weight:bold">=</span> date
+    ),
+    output_file <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">paste0</span>(manufacturer, <span style="color:#d14">&#34;_mpg_report_&#34;</span>, date, <span style="color:#d14">&#34;.html&#34;</span>)
+  )
+}
+
+<span style="color:#998;font-style:italic"># Test one-off report with default params</span>
+<span style="color:#900;font-weight:bold">render_report</span>()
+
+<span style="color:#998;font-style:italic"># Now loop through and create one report for each manufacturer</span>
+<span style="color:#998;font-style:italic"># (note: need to pull down the file and create `df` before running)</span>
+<span style="color:#900;font-weight:bold">for </span>(i in <span style="color:#900;font-weight:bold">unique</span>(df<span style="color:#000;font-weight:bold">$</span>manufacturer)){
+  <span style="color:#900;font-weight:bold">render_report</span>(manufacturer <span style="color:#000;font-weight:bold">=</span> i)
+  <span style="color:#900;font-weight:bold">print</span>(<span style="color:#900;font-weight:bold">paste0</span>(<span style="color:#d14">&#39;finished knitting &#39;</span>, i))
+}
+</code></pre></div>
+
+
+
+<h2 id="final-report">Final report!
+  <a href="#final-report"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>The final report will look like this 
+<a href="https://htmlpreview.github.io/?https://github.com/rjfranssen/parameterized-reporting/blob/main/reports/pontiac_mpg_report_2021-01-20.html" target="_blank" rel="noopener">(see full screen)</a></p>
+<iframe src= "https://htmlpreview.github.io/?https://github.com/rjfranssen/parameterized-reporting/blob/main/reports/pontiac_mpg_report_2021-01-20.html" width="100%" height="400" style="border: none;"></iframe>
+
+
+
+
+<h2 id="acknowledgements">Acknowledgements
+  <a href="#acknowledgements"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>This blog post was made possible thanks to:</p>
+<ul>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/lubridate" target="_blank" rel="noopener">lubridate</a></em> <a id='cite-Grolemund_2011'></a>(<a href='https://www.jstatsoft.org/v40/i03/'>Grolemund and Wickham, 2011</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/rmarkdown" target="_blank" rel="noopener">rmarkdown</a></em></li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/BiocStyle" target="_blank" rel="noopener">BiocStyle</a></em> <a id='cite-Oles_2021'></a>(<a href='https://github.com/Bioconductor/BiocStyle'>Oles, 2021</a>)</li>
+<li><em>
+<a href="https://CRAN.R-project.org/package=blogdown" target="_blank" rel="noopener">blogdown</a></em> <a id='cite-Xie_2017'></a>(<a href='https://bookdown.org/yihui/blogdown/'>Xie, Hill, and Thomas, 2017</a>)</li>
+<li><em>
+<a href="https://CRAN.R-project.org/package=devtools" target="_blank" rel="noopener">devtools</a></em> <a id='cite-Wickham_2021'></a>(<a href='https://CRAN.R-project.org/package=devtools'>Wickham, Hester, and Chang, 2021</a>)</li>
+<li><em>
+<a href="https://CRAN.R-project.org/package=knitcitations" target="_blank" rel="noopener">knitcitations</a></em> <a id='cite-Boettiger_2021'></a>(<a href='https://CRAN.R-project.org/package=knitcitations'>Boettiger, 2021</a>)</li>
+<li>
+<a href="https://github.com/htmlpreview/htmlpreview.github.com" target="_blank" rel="noopener"><em>htmlpreview</em> (Glowacki 2019)</a></li>
+</ul>
+
+      </section>
+      <footer class="post-footer">
+        <div class="post-pagination dt w-100 mt4 mb2">
+  
+  
+    <a class="prev dtc pr2 tl v-top fw6"
+    href="/blog/social/">&larr; Set up your social</a>
+  
+  
+  
+    <a class="next dtc pl2 tr v-top fw6"
+    href="/blog/create-map-based-on-us-zip-codes/">US Zip Code Choropleth &rarr;</a>
+  
+</div>
+
+      </footer>
+    </article>
+    
+      
+<div class="post-comments pa0 pa4-l mt4">
+  
+  <script src="https://utteranc.es/client.js"
+          repo="rjfranssen/rjf-apero"
+          issue-term="pathname"
+          theme="boxy-light"
+          label="comments :crystal_ball:"
+          crossorigin="anonymous"
+          async
+          type="text/javascript">
+  </script>
+  
+</div>
+
+    
+  </section>
+</main>
+<aside class="page-sidebar" role="complementary">
+                         
+ 
+
+
+                       
+ 
+
+
+
+
+
+
+
+
+
+
+
+  <img src="/blog/sidebar-listing.jpg" class="db ma0">
+
+
+
+<div class="blog-info ph4 pt4 pb4 pb0-l">
+  
+
+  <h1 class="f3">Paddling throughb&hellip;</h1>
+  <p class="f6 lh-copy measure">These are a combination of exploratory analyses, articles, and utilities - mostly things that I want to remember. You&rsquo;re welcome to take a look and fire off any questions.</p>
+  <p class="f7 measure lh-copy i mh0-l">Written by Robert Franssen</p>
+
+
+  <small class="db f7"><a href="/blog/" class="dib fw7 ttu bt bw1 b--black-10 pt3">View recent posts</a></small>
+</div>
+
+
+  
+  <details open class="f6 fw7 input-reset">
+  <dl class="f6 lh-copy">
+    <dt class="fw7">Posted on:</dt>
+    <dd class="fw5 ml0">January 16, 2021</dd>
+  </dl>
+  <dl class="f6 lh-copy">
+    <dt class="fw7">Length:</dt>
+    <dd class="fw5 ml0">4 minute read, 641 words</dd>
+  </dl>
+  
+  <dl class="f6 lh-copy">
+    <dt class="fw7">Categories:</dt>
+    <dd class="fw5 ml0"> <a href="/categories/helps">helps</a> </dd>
+  </dl>
+  
+  
+  
+  <dl class="f6 lh-copy">
+    <dt class="fw7">Tags:</dt>
+    <dd class="fw5 ml0"> <a href="/tags/r">r</a> </dd>
+  </dl>
+  
+  <dl class="f6 lh-copy">
+    <dt class="fw7">See Also:</dt>
+    
+    <dd class="fw5 ml0"><a href="/blog/create-map-based-on-us-zip-codes/">US Zip Code Choropleth</a></dd>
+    
+    <dd class="fw5 ml0"><a href="/blog/twitter-sentiment-philly/">It&#39;s Always #Sunny in Philadelphia</a></dd>
+    
+    <dd class="fw5 ml0"><a href="/blog/custom-color-palette/">Create a Custom Color Palette in R</a></dd>
+    
+  </dl>
+</details>
+
+                         
+
+
+
+<nav id="TableOfContents" class="sticky ph4 pb4 pt6" role="navigation">
+  <h2 class="mv0 f5 fw7 ttu tracked dib">On this page</h2>
+    <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#just-give-me-the-code">Just give me the code</a></li>
+        <li><a href="#about-parametrized-reports">About parametrized reports</a></li>
+        <li><a href="#example-report-elements-for-pontiac">Example Report elements for <strong>pontiac</strong></a></li>
+        <li><a href="#parameter-specfic-charts">Parameter Specfic Charts</a></li>
+        <li><a href="#all-car-manufacturers">All Car Manufacturers</a></li>
+        <li><a href="#final-report">Final report!</a></li>
+        <li><a href="#acknowledgements">Acknowledgements</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</nav>
+
+
+</aside>
+<footer class="site-footer pv4 bt b--transparent ph5" role="contentinfo">
+  <nav class="db dt-l w-100">
+    <p class="site-copyright f7 db dtc-l v-mid w-100 w-33-l tc tl-l pv2 pv0-l mv0 lh-copy">
+      &copy; 2021 rjfranssen
+      <span class="middot-divider"></span>
+      Made with <span xmlns:dct="http://purl.org/dc/terms/" property="dct:title"><a xmlns:dct="http://purl.org/dc/terms/" href="https://github.com/hugo-apero/" rel="dct:source">Hugo Apéro</a></span>.
+      <br />
+      
+Based on <span xmlns:dct="http://purl.org/dc/terms/" property="dct:title"><a xmlns:dct="http://purl.org/dc/terms/" href="https://github.com/formspree/blogophonic-hugo" rel="dct:source">Blogophonic</a></span> by <a xmlns:cc="http://creativecommons.org/ns#" href="https://formspree.io" property="cc:attributionName" rel="cc:attributionURL">Formspree</a>.
+    </p>
+    
+    <div class="site-social-links db dtc-l v-mid w-100 w-33-l tc pv2 pv0-l mv0">
+      <div class="social-icon-links" aria-hidden="true">
+  
+  
+    
+    
+    
+      
+    
+    
+    
+    
+    
+      
+    
+    <a class="link dib h1 w1 ml0 mr2 f6 o-90 glow" href="https://github.com/rjfranssen/rjf-apero" title="github" target="_blank" rel="noopener">
+      <i class="fab fa-github fa-lg fa-fw"></i>
+    </a>
+  
+    
+    
+    
+      
+    
+    
+    
+    
+    
+      
+    
+    <a class="link dib h1 w1 ml0 mr2 f6 o-90 glow" href="https://twitter.com/lochnessbobster" title="twitter" target="_blank" rel="noopener">
+      <i class="fab fa-twitter fa-lg fa-fw"></i>
+    </a>
+  
+</div>
+
+    </div>
+    
+    <div class="site-links f6 db dtc-l v-mid w-100 w-67-l tc tr-l pv2 pv0-l mv0">
+      
+      <a class="dib pv1 ph2 link" href="/license/" title="License">License</a>
+      
+      <a class="dib pv1 ph2 link" href="/contact/" title="Contact form">Contact</a>
+      
+    </div>
+  </nav>
+  
+    <script>
+
+    var i, text, code, codes = document.getElementsByTagName('code');
+    for (let i = 0; i < codes.length;) {
+      code = codes[i];
+      if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+        text = code.textContent;
+        if (/^\$[^$]/.test(text) && /[^$]\$$/.test(text)) {
+          text = text.replace(/^\$/, '\\(').replace(/\$$/, '\\)');
+          code.textContent = text;
+        }
+        if (/^\\\((.|\s)+\\\)$/.test(text) ||
+            /^\\\[(.|\s)+\\\]$/.test(text) ||
+            /^\$(.|\s)+\$$/.test(text) ||
+            /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+          code.outerHTML = code.innerHTML;  
+          continue;
+        }
+      }
+      i++;
+    }
+</script>
+
+  
+    
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.min.css" integrity="sha384-RZU/ijkSsFbcmivfdRBQDtwuwVqK7GMOw6IMvKyeWL2K5UAlyp6WonmB8m7Jd0Hn" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.min.js" integrity="sha384-pK1WpvzWVBQiP0/GjnvRxV4mOb0oxFuyRxJlk6vVw146n3egcN5C925NCP7a7BY8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/contrib/auto-render.min.js" integrity="sha384-vZTG03m+2yp6N6BNi5iM4rW4oIwk5DfcNdFfxkk9ZWpDriOkXX8voJBFrAO7MpVl" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+
+
+
+    
+  
+  
+</footer>
+
+      </div>
+    </body>
+</html>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>nlp on rjfranssen</title>
+    <link>/tags/nlp/</link>
+    <description>Recent content in nlp on rjfranssen</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Wed, 30 Dec 2020 00:00:00 +0000</lastBuildDate><atom:link href="/tags/nlp/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>It&#39;s Always #Sunny in Philadelphia</title>
+      <link>/blog/twitter-sentiment-philly/</link>
+      <pubDate>Wed, 30 Dec 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/blog/twitter-sentiment-philly/</guid>
+      <description>This is a walkthrough of using the Twitter API with the rtweet R package. It borrows from a few difference sources, including:
+  ropensci/rtweet documentation  here  Tidy Text Mining with R  Twitter Data in R Using Rtweet: Analyze and Download Twitter Data  Comparing Twitter archives  Mining NASA metadata  Analyzing usenet text  Load libraries     Configure Twitter API access     There are a couple different ways to authenticate your session.</description>
+    </item>
+    
+  </channel>
+</rss>

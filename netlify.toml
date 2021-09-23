@@ -1,43 +1,17 @@
 [build]
-publish = "public"
-command = "hugo --gc --minify"
+command = 'hugo'
+publish = 'public'
+[build.environment]
+HUGO_VERSION = '0.88.1'
 
-[context.production.environment]
-HUGO_VERSION = "0.79.0"
-HUGO_ENV = "production"
 
-[context.split1]
-command = "hugo --gc --minify --enableGitInfo"
-
-[context.split1.environment]
-HUGO_VERSION = "0.79.0"
-HUGO_ENV = "production"
+[context]
+[context.branch-deploy]
+command = 'hugo -F -b $DEPLOY_PRIME_URL'
 
 [context.deploy-preview]
-command = "hugo --gc --minify --buildFuture -b $DEPLOY_PRIME_URL"
+command = 'hugo -F -b $DEPLOY_PRIME_URL'
 
-[context.deploy-preview.environment]
-HUGO_VERSION = "0.79.0"
-
-[context.branch-deploy]
-command = "hugo --gc --minify -b $DEPLOY_PRIME_URL"
-
-[context.branch-deploy.environment]
-HUGO_VERSION = "0.79.0"
-
-[context.next.environment]
-HUGO_ENABLEGITINFO = "true"
-
-# Adding this
-# The following redirect is intended for use with most SPAs that handle
-# routing internally.
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-[[headers]]
-  # Define which paths this specific [[headers]] block will cover.
-  for = "/*"
-    [headers.values]
-    Access-Control-Allow-Origin = "*"
+[context.production]
+[context.production.environment]
+HUGO_ENV = 'production'

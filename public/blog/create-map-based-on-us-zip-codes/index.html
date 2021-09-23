@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr"><head>
+  
+                           
+     
+
+
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.88.1" />
+<title>US Zip Code Choropleth | rjfranssen</title>
+
+
+<meta property="twitter:site" content="@lochnessbobster">
+<meta property="twitter:creator" content="@lochnessbobster">
+
+
+
+
+
+
+
+  
+    
+  
+<meta name="description" content="Create a pannable, zoomable, customizeable, geographical representation of numeric values using R and Leaflet.">
+
+
+<meta property="og:site_name" content="rjfranssen">
+<meta property="og:title" content="US Zip Code Choropleth | rjfranssen">
+<meta property="og:description" content="Create a pannable, zoomable, customizeable, geographical representation of numeric values using R and Leaflet." />
+<meta property="og:type" content="page" />
+<meta property="og:url" content="/blog/create-map-based-on-us-zip-codes/" />
+<meta property="og:locale" content="en">
+
+
+
+
+    
+        <meta property="og:image" content="/blog/create-map-based-on-us-zip-codes/map_featured.png" >
+        <meta property="twitter:card" content="summary_large_image">
+        <meta name="twitter:image" content="/blog/create-map-based-on-us-zip-codes/map_featured.png" >
+    
+    
+  <meta itemprop="name" content="US Zip Code Choropleth">
+<meta itemprop="description" content="First, it&rsquo;s important to recognize that Zip Codes are not polygons - they are a way for the US Post Office to associate mailing addresses with a particular post office or metro area delivery station, like a lookup table. However, the US Census Bureau created the &ldquo;Zip Code Tabulation Area&rdquo; (ZCTA) to generalize an areal representation of Zip Code service areas. This post demonstrates how to create a choropleth map using ZCTAs, R, and the leaflet library."><meta itemprop="datePublished" content="2021-01-03T00:00:00+00:00" />
+<meta itemprop="dateModified" content="2021-01-03T00:00:00+00:00" />
+<meta itemprop="wordCount" content="981"><meta itemprop="image" content="/blog/create-map-based-on-us-zip-codes/map_featured.png">
+<meta itemprop="keywords" content="r,leaflet,gis," />
+  
+  <!--[if IE]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  <link rel="shortcut icon" href="/favicons/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/favicons/favicon.ico" type="image/x-icon">
+  
+  
+  <link rel="stylesheet" href="/style.main.min.d9554fb94d8eed9f0b53a43e8a8683492834125af6ece33cea8f9b2af158659b.css" integrity="sha256-2VVPuU2O7Z8LU6Q&#43;ioaDSSg0Elr27OM86o&#43;bKvFYZZs=" media="screen">
+  
+  
+  <script src="/panelset.min.078a92db9bd3228df502db3d9e0453c3cf3d910abe3f8deca0ad196c7071ad41.js" type="text/javascript"></script>
+  
+  
+  <script src="/main.min.e3f239a63f8fef3eb359ddeba8db9d60d003826af10cc5ff300bfd7771a96df9.js" type="text/javascript"></script>
+  
+  
+  <script src="/toc.min.272fa3955630f6cb446058a3c82414c1d32522ae6d48e2d07f3414c51275e316.js" type="text/javascript"></script>
+</head>
+<body>
+      <div class="grid-container single-sidebar">
+<header class="site-header pt4 pb2 mb4 bb b--transparent ph5 headroom z-max" role="banner">
+  <nav class="site-nav db dt-l w-100" role="navigation">
+    <a class="site-brand db dtc-l v-mid link no-underline w-100 w-33-l tc tl-l" href="/" title="Home">
+      <img src="/img/rjfranssen-blowfish-wide.png" class="dib db-l h2 w-auto" alt="rjfranssen">
+    </a>
+    <div class="site-links db dtc-l v-mid w-100 w-47-l tc tr-l mt3 mt0-l ttu tracked">
+      
+        
+        
+        
+      <a class="link f6 f5-l dib pv1 ph2 " href="/about/" title="About Blogophonic">About</a>
+      
+        
+        
+        
+      <a class="link f6 f5-l dib pv1 ph2 active" href="/blog/" title="Posts">Posts</a>
+      
+        
+        
+        
+      <a class="link f6 f5-l dib pv1 ph2 " href="/project/" title="Projects and Applications">Projects</a>
+      
+        
+        
+        
+      <a class="link f6 f5-l dib pv1 ph2 " href="https://github.com/rjfranssen" title="GitHub">GitHub</a>
+      
+      
+    </div>
+  </nav>
+</header>
+
+<main class="page-main pa4" role="main">
+  <section class="page-content mw7 center">
+    <article class="post-content pa0 pr3-l">
+      <header class="post-header">
+        <h1 class="f1 lh-solid measure-narrow mb3 fw4">US Zip Code Choropleth</h1>
+        <h4 class="f4 mt0 mb4 lh-title measure">Create a pannable, zoomable, customizeable, geographical representation of numeric values using R and Leaflet.</h4>
+        <p class="f6 measure lh-copy mv1">By Robert Franssen in <a href="/categories/geography">geography</a> </p>
+        <p class="f7 db mv0 ttu">January 3, 2021</p>
+      </header>
+      <section class="post-body pt5 pb4">
+        <p>First, it&rsquo;s important to recognize that Zip Codes are not polygons - they are a way for the US Post Office to associate mailing addresses with a particular post office or metro area delivery station, like a lookup table. However, the US Census Bureau created the 
+<a href="https://www.census.gov/programs-surveys/geography/guidance/geo-areas/zctas.html" target="_blank" rel="noopener">&ldquo;Zip Code Tabulation Area&rdquo; (ZCTA)</a> to generalize an areal representation of Zip Code service areas. This post demonstrates how to create a choropleth map using ZCTAs, R, and the 
+<a href="https://rstudio.github.io/leaflet/" target="_blank" rel="noopener">leaflet</a> library. <em>I originally 
+<a href="https://www.reddit.com/r/rprogramming/comments/ifnfju/create_a_map_based_off_of_us_postal_zip_codes/" target="_blank" rel="noopener">posted this</a> to reddit.</em></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#900;font-weight:bold">library</span>(rgdal)
+<span style="color:#900;font-weight:bold">library</span>(leaflet)
+<span style="color:#900;font-weight:bold">library</span>(dplyr)
+<span style="color:#900;font-weight:bold">library</span>(data.table)
+<span style="color:#900;font-weight:bold">library</span>(htmlwidgets)
+</code></pre></div>
+
+
+
+<h2 id="download-the-zcta-shapefile">Download the ZCTA Shapefile
+  <a href="#download-the-zcta-shapefile"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>Spatial polygons come in various formats - I tend to work with shapefiles and geojsons the most. For this example, I&rsquo;m downloading the ZCTA shapefile from the U.S. Census Bureau website. I&rsquo;m using the <code>cb_2018_us_zcta510_500k.zip [59 MB]</code> file found here: <strong>
+<a href="https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.html" target="_blank" rel="noopener">Cartographic Boundary Files - Shapefile</a></strong>. There are other useful US shapefiles here, too, that include county, state, and metropolitan polygons.</p>
+<p>Note the 
+<a href="https://walker-data.com/tidycensus/" target="_blank" rel="noopener">tidycensus</a> package has great wrapper functions to pull down data from the US Census Bureau website, but I&rsquo;m not doing that here because I want some code that I can use for other shapefiles.</p>
+<p><img src="zcta_capture.PNG" alt=""></p>
+
+
+
+
+<h2 id="unzip-the-zcta-shapefile">Unzip the ZCTA Shapefile
+  <a href="#unzip-the-zcta-shapefile"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>Unzip the shapefile you downloaded and put it in your working directory. This folder represents the entire shapefile.</p>
+<p><img src="zcta_unzipped.PNG" alt=""></p>
+<p>If you open the shapefile folder, you&rsquo;ll see it&rsquo;s composed of several files that describe its projection and shape. 
+<a href="https://www.loc.gov/preservation/digital/formats/fdd/fdd000280.shtml" target="_blank" rel="noopener">Go here</a> to understand what each file does. For our purposes, we&rsquo;ll be reading it in at the folder level.</p>
+<p><img src="zcta_insides.PNG" alt=""></p>
+
+
+
+
+<h2 id="read-it-into-the-r-session">Read it into the R session
+  <a href="#read-it-into-the-r-session"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>Now using the <code>rgdal</code> library to read it in as a <code>Large SpatialPolygonsDataFrame</code>.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">zcta_shapefile <span style="color:#000;font-weight:bold">&lt;-</span>  rgdal<span style="color:#000;font-weight:bold">::</span><span style="color:#900;font-weight:bold">readOGR</span>(
+  dsn <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;cb_2018_us_zcta510_500k&#34;</span>, <span style="color:#998;font-style:italic"># this is the unzipped folder</span>
+  layer <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;cb_2018_us_zcta510_500k&#34;</span>, <span style="color:#998;font-style:italic"># this is the file inside of the unzipped folder</span>
+  verbose <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">FALSE</span>
+)
+</code></pre></div>
+
+
+
+<h2 id="create-test-data">Create test data
+  <a href="#create-test-data"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>Maybe you have a spreadsheet of addressed or a table that you would import here. I&rsquo;m going to create some fake numbers just for this exercise.</p>
+<p>TODO: Use a real dataset :)</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#998;font-style:italic"># identify Alabama zip codes</span>
+al_zips <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#099">35004</span><span style="color:#000;font-weight:bold">:</span><span style="color:#099">36925</span>
+
+<span style="color:#998;font-style:italic"># get some random numbers</span>
+sales <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">runif</span>(<span style="color:#900;font-weight:bold">length</span>(al_zips), min<span style="color:#000;font-weight:bold">=</span><span style="color:#099">1000</span>, max<span style="color:#000;font-weight:bold">=</span><span style="color:#099">5000</span>) <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">round</span>(<span style="color:#099">0</span>)
+
+<span style="color:#998;font-style:italic"># put this in a dataframe</span>
+sales_data <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">data.frame</span>(
+  state <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#39;AL&#39;</span>,
+  zip <span style="color:#000;font-weight:bold">=</span> al_zips,
+  sales <span style="color:#000;font-weight:bold">=</span> sales
+)
+
+<span style="color:#998;font-style:italic"># ok, now i have some fake sales numbers</span>
+sales_data <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">head</span>(<span style="color:#099">5</span>)
+<span style="color:#998;font-style:italic">##   state   zip sales</span>
+<span style="color:#998;font-style:italic">## 1    AL 35004  2428</span>
+<span style="color:#998;font-style:italic">## 2    AL 35005  3770</span>
+<span style="color:#998;font-style:italic">## 3    AL 35006  3173</span>
+<span style="color:#998;font-style:italic">## 4    AL 35007  3249</span>
+<span style="color:#998;font-style:italic">## 5    AL 35008  3523</span>
+</code></pre></div>
+
+
+
+<h2 id="join-data">Join data
+  <a href="#join-data"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>Join the test data to your SpatialPolygonsDataFrame &ldquo;data&rdquo; slot. Again, this will look a bit different if you&rsquo;re using <code>tidycensus</code> and the <code>Simple Features (sf)</code> package (which is easier but not always an option with legacy data).</p>
+<p>I tend to copy the data slot first so I can explore it easier in RStudio and then put it back in. But be careful not to duplicate or drop any rows in your join or it&rsquo;ll get messed up. Again, this is easier in <code>sf</code>&hellip;</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#998;font-style:italic"># copy data</span>
+zcta_data <span style="color:#000;font-weight:bold">&lt;-</span> data.table<span style="color:#000;font-weight:bold">::</span><span style="color:#900;font-weight:bold">copy</span>(zcta_shapefile<span style="color:#000;font-weight:bold">@</span>data)
+
+<span style="color:#998;font-style:italic">#  join sales data - it&#39;s very important that we do NOT  duplicate or drop rows or it&#39;s going to screw up the shapefile</span>
+zcta_data<span style="color:#000;font-weight:bold">$</span>ZCTA5CE10 <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">as.numeric</span>(zcta_data<span style="color:#000;font-weight:bold">$</span>ZCTA5CE10)
+zcta_data <span style="color:#000;font-weight:bold">&lt;-</span> zcta_data <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">left_join</span>(sales_data, by <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">c</span>(<span style="color:#d14">&#34;ZCTA5CE10&#34;</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;zip&#34;</span>))
+
+<span style="color:#998;font-style:italic"># Now reattach this data file back to the SpatialPolygonsDataFrame data slot</span>
+zcta_shapefile<span style="color:#000;font-weight:bold">@</span>data <span style="color:#000;font-weight:bold">&lt;-</span> zcta_data
+
+<span style="color:#998;font-style:italic"># (optional) There are 33k ZCTAs in the US; consider reducing these to a particular region of interest.</span>
+<span style="color:#998;font-style:italic"># I&#39;m using the `state` value that i just joined for demo purposes. You can skip this if you want to do the whole country</span>
+zcta_shapefile <span style="color:#000;font-weight:bold">&lt;-</span> zcta_shapefile[<span style="color:#000;font-weight:bold">!</span><span style="color:#900;font-weight:bold">is.na</span>(zcta_shapefile<span style="color:#000;font-weight:bold">@</span>data<span style="color:#000;font-weight:bold">$</span>state) <span style="color:#000;font-weight:bold">&amp;</span> zcta_shapefile<span style="color:#000;font-weight:bold">@</span>data<span style="color:#000;font-weight:bold">$</span>state<span style="color:#000;font-weight:bold">==</span><span style="color:#d14">&#39;AL&#39;</span>,]
+</code></pre></div><p>Check these - they should match; if they don&rsquo;t, make sure the join isn&rsquo;t duplicating or dropping anything.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#900;font-weight:bold">nrow</span>(zcta_shapefile<span style="color:#000;font-weight:bold">@</span>data) <span style="color:#000;font-weight:bold">==</span> <span style="color:#900;font-weight:bold">length</span>(zcta_shapefile<span style="color:#000;font-weight:bold">@</span>polygons)
+<span style="color:#998;font-style:italic">## [1] TRUE</span>
+<span style="color:#900;font-weight:bold">nrow</span>(zcta_shapefile<span style="color:#000;font-weight:bold">@</span>data)
+<span style="color:#998;font-style:italic">## [1] 642</span>
+<span style="color:#900;font-weight:bold">length</span>(zcta_shapefile<span style="color:#000;font-weight:bold">@</span>polygons)
+<span style="color:#998;font-style:italic">## [1] 642</span>
+</code></pre></div>
+
+
+
+<h2 id="mapping">Mapping
+  <a href="#mapping"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>Now going to do a couple of things to prepare for the interactive map, statting ith creating map labels that will appear when someone hovers over a polygon.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">labels <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">sprintf</span>(
+  <span style="color:#d14">&#34;&lt;strong&gt;Zip: %s&lt;/strong&gt;&lt;br/&gt; Sales: $%s&#34;</span>,
+  zcta_shapefile<span style="color:#000;font-weight:bold">@</span>data<span style="color:#000;font-weight:bold">$</span>ZCTA5CE10,
+  <span style="color:#900;font-weight:bold">prettyNum</span>(zcta_shapefile<span style="color:#000;font-weight:bold">@</span>data<span style="color:#000;font-weight:bold">$</span>sales, big.mark<span style="color:#000;font-weight:bold">=</span><span style="color:#d14">&#34;,&#34;</span>)
+) <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">lapply</span>(htmltools<span style="color:#000;font-weight:bold">::</span>HTML)
+</code></pre></div><p>Next, going to create a color palette and specify the sales value for the domain over which the choropleth gets shaded.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">map_pal <span style="color:#000;font-weight:bold">&lt;-</span>  leaflet<span style="color:#000;font-weight:bold">::</span><span style="color:#900;font-weight:bold">colorNumeric</span>(palette<span style="color:#000;font-weight:bold">=</span><span style="color:#d14">&#34;viridis&#34;</span>, domain <span style="color:#000;font-weight:bold">=</span> zcta_shapefile<span style="color:#000;font-weight:bold">@</span>data<span style="color:#000;font-weight:bold">$</span>sales, na.color<span style="color:#000;font-weight:bold">=</span><span style="color:#d14">&#34;transparent&#34;</span>)
+</code></pre></div><p>Like I said, 33k polygons is A LOT. If you&rsquo;re going to plot them all, there&rsquo;s some options below to help our with processing (e.g. <code>preferCanvas = TRUE</code>, <code>updateWhenZooming = FALSE</code>, <code>updateWhenIdle = TRUE</code>). Otherwise, consider paring this down to an area of interest as shown in the optional step above.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">zcta_map <span style="color:#000;font-weight:bold">&lt;-</span> zcta_shapefile <span style="color:#000;font-weight:bold">%&gt;%</span> 
+  
+  leaflet<span style="color:#000;font-weight:bold">::</span><span style="color:#900;font-weight:bold">leaflet</span>(options <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">leafletOptions</span>(preferCanvas <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">TRUE</span>)) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  
+  <span style="color:#998;font-style:italic"># Check out map providers here: https://leaflet-extras.github.io/leaflet-providers/preview/</span>
+  <span style="color:#900;font-weight:bold">addProviderTiles</span>(providers<span style="color:#000;font-weight:bold">$</span>Esri.WorldStreetMap, options <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">providerTileOptions</span>(
+    updateWhenZooming <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">FALSE</span>,      <span style="color:#998;font-style:italic"># map won&#39;t update tiles until zoom is done</span>
+    updateWhenIdle <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">TRUE</span>           <span style="color:#998;font-style:italic"># map won&#39;t load new tiles when panning</span>
+  )) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  
+  <span style="color:#998;font-style:italic"># Alabama zip 35148</span>
+  <span style="color:#900;font-weight:bold">setView</span>(lat <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">33.7492174</span>, lng <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">-87.0823462</span>, zoom <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">7</span>) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  
+  <span style="color:#998;font-style:italic"># Now add those polygons!</span>
+  <span style="color:#900;font-weight:bold">addPolygons</span>(
+    fillColor <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">~</span><span style="color:#900;font-weight:bold">map_pal</span>(sales), <span style="color:#998;font-style:italic"># the map palette we made</span>
+    weight <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">2</span>,
+    opacity <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">1</span>,
+    color <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;white&#34;</span>,
+    dashArray <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;3&#34;</span>,
+    stroke <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">TRUE</span>,
+    fillOpacity <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">0.5</span>,
+    highlight <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">highlightOptions</span>(
+      weight <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">5</span>,
+      color <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;#667&#34;</span>,
+      dashArray <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;&#34;</span>,
+      fillOpacity <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">0.7</span>,
+      bringToFront <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">TRUE</span>
+    ),
+    label <span style="color:#000;font-weight:bold">=</span> labels, <span style="color:#998;font-style:italic"># cool labels</span>
+    labelOptions <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">labelOptions</span>(
+      style <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">list</span>(<span style="color:#d14">&#34;font-weight&#34;</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;normal&#34;</span>, padding <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;3px 8px&#34;</span>),
+      textsize <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;15px&#34;</span>,
+      directon <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;auto&#34;</span>
+    )
+  ) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  
+  <span style="color:#998;font-style:italic"># Dont forget a legend</span>
+  <span style="color:#900;font-weight:bold">addLegend</span>(
+    pal <span style="color:#000;font-weight:bold">=</span> map_pal,
+    values <span style="color:#000;font-weight:bold">=</span>  <span style="color:#000;font-weight:bold">~</span>sales,
+    opacity <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">0.7</span>,
+    title <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;Sales&#34;</span>
+  )
+</code></pre></div><p>And here is the finished map! 
+<a href="zcta_map.html">full screen</a></p>
+<iframe src= "zcta_map.html" width="100%" height="400" style="border: none;"></iframe>
+
+
+
+
+<h2 id="acknowledgements">Acknowledgements
+  <a href="#acknowledgements"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>This blog post was made possible thanks to:</p>
+<ul>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/rgdal" target="_blank" rel="noopener">rgdal</a></em> <a id='cite-Bivand_2021'></a>(<a href='https://CRAN.R-project.org/package=rgdal'>Bivand, Keitt, and Rowlingson, 2021</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/leaflet" target="_blank" rel="noopener">leaflet</a></em> <a id='cite-Cheng_2021'></a>(<a href='https://CRAN.R-project.org/package=leaflet'>Cheng, Karambelkar, and Xie, 2021</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/dplyr" target="_blank" rel="noopener">dplyr</a></em> <a id='cite-Wickham_2021'></a>(<a href='https://CRAN.R-project.org/package=dplyr'>Wickham, François, Henry, and Müller, 2021</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/data.table" target="_blank" rel="noopener">data.table</a></em> <a id='cite-Dowle_2021'></a>(<a href='https://CRAN.R-project.org/package=data.table'>Dowle and Srinivasan, 2021</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/htmlwidgets" target="_blank" rel="noopener">htmlwidgets</a></em> <a id='cite-Vaidyanathan_2021'></a>(<a href='https://CRAN.R-project.org/package=htmlwidgets'>Vaidyanathan, Xie, Allaire, Cheng, et al., 2021</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/BiocStyle" target="_blank" rel="noopener">BiocStyle</a></em> <a id='cite-Oles_2021'></a>(<a href='https://github.com/Bioconductor/BiocStyle'>Oles, 2021</a>)</li>
+<li><em>
+<a href="https://CRAN.R-project.org/package=blogdown" target="_blank" rel="noopener">blogdown</a></em> <a id='cite-Xie_2017'></a>(<a href='https://bookdown.org/yihui/blogdown/'>Xie, Hill, and Thomas, 2017</a>)</li>
+<li><em>
+<a href="https://CRAN.R-project.org/package=devtools" target="_blank" rel="noopener">devtools</a></em> <a id='cite-Wickham_2021a'></a>(<a href='https://CRAN.R-project.org/package=devtools'>Wickham, Hester, and Chang, 2021</a>)</li>
+<li><em>
+<a href="https://CRAN.R-project.org/package=knitcitations" target="_blank" rel="noopener">knitcitations</a></em> <a id='cite-Boettiger_2021'></a>(<a href='https://CRAN.R-project.org/package=knitcitations'>Boettiger, 2021</a>)</li>
+</ul>
+<!-- ## References -->
+<!-- ```{r bibliography, results = 'asis', echo = FALSE, cache = FALSE} -->
+<!-- ## Print bibliography -->
+<!-- bibliography(style = 'html') -->
+<!-- ``` -->
+<!-- ## Reproducibility -->
+<!-- ```{r reproducibility, echo = FALSE} -->
+<!-- ## Reproducibility info -->
+<!-- options(width = 120) -->
+<!-- session_info() -->
+<!-- ``` -->
+
+      </section>
+      <footer class="post-footer">
+        <div class="post-pagination dt w-100 mt4 mb2">
+  
+  
+    <a class="prev dtc pr2 tl v-top fw6"
+    href="/blog/parameteried-reporting-in-r/">&larr; Parameterized Reporting in R</a>
+  
+  
+  
+    <a class="next dtc pl2 tr v-top fw6"
+    href="/blog/custom-color-palette/">Create a Custom Color Palette in R &rarr;</a>
+  
+</div>
+
+      </footer>
+    </article>
+    
+      
+<div class="post-comments pa0 pa4-l mt4">
+  
+  <script src="https://utteranc.es/client.js"
+          repo="rjfranssen/rjf-apero"
+          issue-term="pathname"
+          theme="boxy-light"
+          label="comments :crystal_ball:"
+          crossorigin="anonymous"
+          async
+          type="text/javascript">
+  </script>
+  
+</div>
+
+    
+  </section>
+</main>
+<aside class="page-sidebar" role="complementary">
+                         
+ 
+
+
+                       
+ 
+
+
+
+
+
+
+
+
+
+
+
+  <img src="/blog/sidebar-listing.jpg" class="db ma0">
+
+
+
+<div class="blog-info ph4 pt4 pb4 pb0-l">
+  
+
+  <h1 class="f3">Paddling throughb&hellip;</h1>
+  <p class="f6 lh-copy measure">These are a combination of exploratory analyses, articles, and utilities - mostly things that I want to remember. You&rsquo;re welcome to take a look and fire off any questions.</p>
+  <p class="f7 measure lh-copy i mh0-l">Written by Robert Franssen</p>
+
+
+  <small class="db f7"><a href="/blog/" class="dib fw7 ttu bt bw1 b--black-10 pt3">View recent posts</a></small>
+</div>
+
+
+  
+  <details open class="f6 fw7 input-reset">
+  <dl class="f6 lh-copy">
+    <dt class="fw7">Posted on:</dt>
+    <dd class="fw5 ml0">January 3, 2021</dd>
+  </dl>
+  <dl class="f6 lh-copy">
+    <dt class="fw7">Length:</dt>
+    <dd class="fw5 ml0">5 minute read, 981 words</dd>
+  </dl>
+  
+  <dl class="f6 lh-copy">
+    <dt class="fw7">Categories:</dt>
+    <dd class="fw5 ml0"> <a href="/categories/geography">geography</a> </dd>
+  </dl>
+  
+  
+  
+  <dl class="f6 lh-copy">
+    <dt class="fw7">Tags:</dt>
+    <dd class="fw5 ml0"> <a href="/tags/r">r</a>  <a href="/tags/leaflet">leaflet</a>  <a href="/tags/gis">gis</a> </dd>
+  </dl>
+  
+  <dl class="f6 lh-copy">
+    <dt class="fw7">See Also:</dt>
+    
+    <dd class="fw5 ml0"><a href="/blog/parameteried-reporting-in-r/">Parameterized Reporting in R</a></dd>
+    
+    <dd class="fw5 ml0"><a href="/blog/twitter-sentiment-philly/">It&#39;s Always #Sunny in Philadelphia</a></dd>
+    
+    <dd class="fw5 ml0"><a href="/blog/custom-color-palette/">Create a Custom Color Palette in R</a></dd>
+    
+  </dl>
+</details>
+
+                         
+
+
+
+<nav id="TableOfContents" class="sticky ph4 pb4 pt6" role="navigation">
+  <h2 class="mv0 f5 fw7 ttu tracked dib">On this page</h2>
+    <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#download-the-zcta-shapefile">Download the ZCTA Shapefile</a></li>
+        <li><a href="#unzip-the-zcta-shapefile">Unzip the ZCTA Shapefile</a></li>
+        <li><a href="#read-it-into-the-r-session">Read it into the R session</a></li>
+        <li><a href="#create-test-data">Create test data</a></li>
+        <li><a href="#join-data">Join data</a></li>
+        <li><a href="#mapping">Mapping</a></li>
+        <li><a href="#acknowledgements">Acknowledgements</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</nav>
+
+
+</aside>
+<footer class="site-footer pv4 bt b--transparent ph5" role="contentinfo">
+  <nav class="db dt-l w-100">
+    <p class="site-copyright f7 db dtc-l v-mid w-100 w-33-l tc tl-l pv2 pv0-l mv0 lh-copy">
+      &copy; 2021 rjfranssen
+      <span class="middot-divider"></span>
+      Made with <span xmlns:dct="http://purl.org/dc/terms/" property="dct:title"><a xmlns:dct="http://purl.org/dc/terms/" href="https://github.com/hugo-apero/" rel="dct:source">Hugo Apéro</a></span>.
+      <br />
+      
+Based on <span xmlns:dct="http://purl.org/dc/terms/" property="dct:title"><a xmlns:dct="http://purl.org/dc/terms/" href="https://github.com/formspree/blogophonic-hugo" rel="dct:source">Blogophonic</a></span> by <a xmlns:cc="http://creativecommons.org/ns#" href="https://formspree.io" property="cc:attributionName" rel="cc:attributionURL">Formspree</a>.
+    </p>
+    
+    <div class="site-social-links db dtc-l v-mid w-100 w-33-l tc pv2 pv0-l mv0">
+      <div class="social-icon-links" aria-hidden="true">
+  
+  
+    
+    
+    
+      
+    
+    
+    
+    
+    
+      
+    
+    <a class="link dib h1 w1 ml0 mr2 f6 o-90 glow" href="https://github.com/rjfranssen/rjf-apero" title="github" target="_blank" rel="noopener">
+      <i class="fab fa-github fa-lg fa-fw"></i>
+    </a>
+  
+    
+    
+    
+      
+    
+    
+    
+    
+    
+      
+    
+    <a class="link dib h1 w1 ml0 mr2 f6 o-90 glow" href="https://twitter.com/lochnessbobster" title="twitter" target="_blank" rel="noopener">
+      <i class="fab fa-twitter fa-lg fa-fw"></i>
+    </a>
+  
+</div>
+
+    </div>
+    
+    <div class="site-links f6 db dtc-l v-mid w-100 w-67-l tc tr-l pv2 pv0-l mv0">
+      
+      <a class="dib pv1 ph2 link" href="/license/" title="License">License</a>
+      
+      <a class="dib pv1 ph2 link" href="/contact/" title="Contact form">Contact</a>
+      
+    </div>
+  </nav>
+  
+    <script>
+
+    var i, text, code, codes = document.getElementsByTagName('code');
+    for (let i = 0; i < codes.length;) {
+      code = codes[i];
+      if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+        text = code.textContent;
+        if (/^\$[^$]/.test(text) && /[^$]\$$/.test(text)) {
+          text = text.replace(/^\$/, '\\(').replace(/\$$/, '\\)');
+          code.textContent = text;
+        }
+        if (/^\\\((.|\s)+\\\)$/.test(text) ||
+            /^\\\[(.|\s)+\\\]$/.test(text) ||
+            /^\$(.|\s)+\$$/.test(text) ||
+            /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+          code.outerHTML = code.innerHTML;  
+          continue;
+        }
+      }
+      i++;
+    }
+</script>
+
+  
+    
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.min.css" integrity="sha384-RZU/ijkSsFbcmivfdRBQDtwuwVqK7GMOw6IMvKyeWL2K5UAlyp6WonmB8m7Jd0Hn" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.min.js" integrity="sha384-pK1WpvzWVBQiP0/GjnvRxV4mOb0oxFuyRxJlk6vVw146n3egcN5C925NCP7a7BY8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/contrib/auto-render.min.js" integrity="sha384-vZTG03m+2yp6N6BNi5iM4rW4oIwk5DfcNdFfxkk9ZWpDriOkXX8voJBFrAO7MpVl" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+
+
+
+    
+  
+  
+</footer>
+
+      </div>
+    </body>
+</html>

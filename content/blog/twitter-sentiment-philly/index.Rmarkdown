@@ -1,0 +1,720 @@
+---
+title: "It's Always #Sunny in Philadelphia"
+subtitle: Walk through the Twitter API and the rtweet package and analyze sentiment across the Twitterverse.
+author: Robert Franssen
+date: '2020-12-30'
+draft: false
+excerpt: Walk through the Twitter API and the rtweet package and analyze sentiment across the Twitterverse.
+layout: single-sidebar
+slug: twitter-sentiment-philly
+categories:
+  - natural language processing
+tags:
+  - r
+  - nlp
+  - twitter
+---
+
+
+```{r setup, include = FALSE, message = FALSE, warning = FALSE}
+# Knitr options: https://yihui.org/knitr/options/
+library(lubridate)
+knitr::opts_chunk$set(collapse = TRUE
+                      , eval = TRUE
+                      , echo = TRUE
+                      , message = FALSE
+                      , warning = FALSE
+                      , include = TRUE)
+```
+
+
+This is a walkthrough of using the Twitter API with the `rtweet` R package. It borrows from a few difference sources, including: 
+* [ropensci/rtweet documentation](https://github.com/ropensci/rtweet)  
+* [here](https://gist.github.com/bryangoodrich/7b5ef683ce8db592669e)  
+* [Tidy Text Mining with R](https://www.tidytextmining.com/topicmodeling.html)  
+* [Twitter Data in R Using Rtweet: Analyze and Download Twitter Data](https://www.earthdatascience.org/courses/earth-analytics/get-data-using-apis/use-twitter-api-r/) 
+* [Comparing Twitter archives](https://www.tidytextmining.com/twitter.html)  
+* [Mining NASA metadata](https://www.tidytextmining.com/nasa.html)  
+* [Analyzing usenet text](https://www.tidytextmining.com/usenet.html)  
+
+## Load libraries
+
+```{r libraries, echo = FALSE}
+library(rtweet)
+library(rmarkdown)
+library(NLP)
+library(tm)
+library(RColorBrewer)
+library(wordcloud)
+library(topicmodels)
+library(SnowballC)
+library(config)
+library(dplyr)
+library(tidytext)
+library(tidyr)
+library(ggplot2)
+library(lubridate)
+library(readr)
+library(skimr)
+library(textdata)
+```
+
+## Configure Twitter API access
+
+There are a couple different ways to authenticate your session. The `rtweet` package makes this pretty easy by enabling browser-based authentication. I prefer to authenticate in code. Check the `rtweet` vignette for connection options.  
+
+What I did: Head over to the [Twitter Developer](https://developer.twitter.com/en/apply-for-access) site and requested a developer account to gain access to Twitter APIs and tools.
+
+Then I used a `config.yml` to store my keys. The `config` package a good way to import keys and passwords without making them publc (just make sure they're covered by your `.gitignore` file!). Check out the [documentation](https://cran.r-project.org/web/packages/config/vignettes/introduction.html). _Note: If using Hugo and don't want it swept up into your `public` directory, you can also add `config.yml` to the `ignoreFiles` parameter in the `config.toml`_.
+
+
+```{r configrtweet, eval = FALSE}
+config <- config::get(file = 'config.yml')
+
+## authenticate via web browser
+token <- create_token(
+  app = config$app,
+  consumer_key = config$apikey,
+  consumer_secret = config$apikeysecret,
+  access_token = config$accesstoken,
+  access_secret = config$accesstokensecret)
+```
+
+
+## Query the Tweets!
+
+Going to ask for the most recent 2000.  
+
+```{r rtweetexamples, eval = FALSE}
+# Search tweets using rtweet search function
+tweets_df <- rtweet::search_tweets(
+  q = 'philadelphia philly'
+  , n = 2000
+  , include_rts = FALSE
+  , type = 'recent'
+  #, geocode = "37.78, -122.40, 1mi"
+  #, retryonratelimit = TRUE
+  #, parse = FALSE
+  #, lang = 'en' 
+  # ... see Twitter's REST API for more search parameters
+)
+
+## Create lat/lng variables using all available tweet and profile geo-location data
+tweets_df <- rtweet::lat_lng(tweets_df)
+
+## Also going to create some friendlier date variables;`created_at` is a `POSIXct` type that requires a bit of tender loving care. WIll still keep the `created_at` value, which works great with `dygraphs` and just fine with `ggplot2`, but I want to be able to group by date variables.
+tweets_df$tweet_datetime <- tweets_df$created_at
+tweets_df$tweet_date <- tweets_df$created_at %>% as.POSIXlt() %>% as.Date() %>% ymd()
+tweets_df$tweet_year <- tweets_df$created_at %>% as.POSIXlt() %>% as.Date() %>% year()
+tweets_df$tweet_month <- tweets_df$created_at %>% as.POSIXlt() %>% as.Date() %>% month()
+tweets_df$tweet_day <- tweets_df$created_at %>% as.POSIXlt() %>% as.Date() %>% day()
+
+```
+
+
+Optionally, save this df to a local directory so you come back to this later without having to hit the Twitter API; `Rds` and `Rdata` files load super fast. You can also add these file types to your `.gitignore` and `config.toml` if you don't want to push them to your online git repo.
+
+```{r savetofile, eval = FALSE}
+saveRDS(tweets_df, file = "tweets_df.Rds", compress = 'xz')
+```
+
+Reading back in the `.Rds` file..
+
+```{r loadfromfile}
+tweets_df <- readRDS("tweets_df.Rds")
+
+tweets_df %>% head()
+```
+
+
+## Examining data
+
+Now going to identify a few basic things, but first, this df has 92 columns. What are some of the columns that we're most likely to use? The `skimr` package is **really** good at doing this and I often use it in addition to `summary()`.
+
+```{r skimddf, eval = FALSE}
+#summary(tweet_df)
+skim(tweets_df)
+```
+
+
+And what does the table look like?
+
+
+```{r}
+tweets_df %>% select(
+  # About the tweet
+  text
+  , lang
+  , hashtags
+  , symbols
+  , favorite_count
+  , retweet_count
+  , lat
+  , lng
+  # About the user
+  , name
+  , screen_name
+  , followers_count
+  , friends_count
+  , location
+  , description
+  , listed_count
+  , statuses_count
+  , created_at
+  , account_created_at
+  ) %>%
+  head(2)
+```
+
+## Sample stats & visualizations  
+
+What is our total tweet *count*?   
+
+```{r stats1}
+nrow(tweets_df) %>% print()
+```
+
+What is the most *favorited* tweet?  
+
+```{r stats2}
+tweets_df %>%
+  slice_max(favorite_count, n = 1) %>% # can also use arrange()
+  select(screen_name
+         , text
+         , favorite_count
+         , created_at)
+
+```
+
+
+What users are *tweeting the most*?  
+
+```{r statsthree}
+top_tweeters <- tweets_df %>%
+  group_by(screen_name) %>%
+  summarize(num_tweets = n()) %>%
+  arrange(-num_tweets) %>% # can also use slice_max()
+  ungroup() %>%
+  head(5)
+
+ggplot(top_tweeters) +
+  geom_histogram(aes(x = screen_name, y = num_tweets, fill = screen_name), stat = 'identity') +
+  theme_minimal() +
+  scale_fill_viridis_d(option = "viridis") +
+  labs(title = "What users are tweeting the most?") +
+  theme(legend.position = "none") +
+  xlab("") +
+  ylab("Number of Tweets")
+```
+
+
+In what *languages* are they tweeting?  
+
+Languages are recorded here as [alpha-3 / ISO 639.2 codes](https://www.loc.gov/standards/iso639-2/php/code_list.php).  
+
+```{r statsfour}
+tweets_df %>%
+  group_by(lang) %>%
+  summarize(num_tweets = n()) %>%
+  arrange(-num_tweets) %>% # can also use slice_max()
+  head(5)
+
+# ggplot(tweets_df) +
+#   geom_bar(aes(x = lang, fill = lang))
+```
+
+
+What *platforms* are people using?  
+
+```{r statsfive}
+users_by_source <- tweets_df %>%
+  group_by(source) %>%
+  summarize(num_users = n_distinct(user_id)) %>%
+  arrange(-num_users) %>% # can also use slice_max()
+  ungroup() %>%
+  head(10)
+
+ggplot(users_by_source) +
+  geom_histogram(aes(x = reorder(source, num_users), y = num_users, fill = source), stat = 'identity') +
+  scale_fill_viridis_d(option = "viridis") +
+  coord_flip() +
+  theme_gray() +
+  theme(legend.position = "none") +
+  #theme(legend.title = element_blank()) +
+  labs(title = "Top 10 Twitter Platforms People are Using") +
+  xlab("") +
+  ylab("Number of Users") +
+  scale_y_continuous(breaks = seq(0, 450, by=50), limits = c(0, 450), expand = c(0, 0)) + # use expand() to remove empty space between axis and bars
+  geom_hline(yintercept = seq(0, 450, by = 25), color = 'white')
+```
+
+
+*How many* tweets per day?  
+
+Going to create a chart with [ggplot2 and plotly](https://plotly-r.com/improving-ggplotly.html) and a second one with [dygraphs for r](https://rstudio.github.io/dygraphs/index.html).  
+
+```{r pltone}
+tweets_per_day <- tweets_df %>%
+  group_by(tweet_date) %>%
+  summarize(num_tweets = n()) %>%
+  arrange(-num_tweets) %>% # can also use slice_max()
+  ungroup()
+
+# Using ggplot + plotly
+library(plotly)
+plt1 <- ggplot(tweets_per_day) +
+  geom_line(aes(x = tweet_date, y = num_tweets)) +
+  scale_fill_viridis_d(option = "viridis") +
+  theme_gray() +
+  theme(legend.position = "none") +
+  labs(title = "Daily Tweets for 'Philadelphia' (ggplot2 + plotly)") +
+  xlab("") +
+  ylab("Number of Tweets") 
+
+pltly1 <- plotly::ggplotly(plt1)
+```
+
+
+_Note: Because I'm writing this in .Rmarkdown, I use the below snippet to save the html widget to file and then bring it back in via an iframe. The main reason is that `.Rmarkdown` files are processed by `Pandoc`, output as `.markdown` and then processed by Hugo/Goldmark before becoming `html` files. The `.Rmd` files are processed by `Pandoc` and output as `html`; so, while the `.Rmd` is widget-friendly, I was losing the Hugo/Goldmark styling associated with my Hugo theme (e.g. TOCs, code highlighting). This is why all my posts that involve code are written in `.Rmarkdown`. See the [blogdown docs](https://bookdown.org/yihui/blogdown/output-format.html) for a better explanation._
+
+**Update!** Exporting and bringing an html file via an iframe is no longer necessary with `blogdown 1.0`! I'm going to see the code as a reference if I need to do it again to avoid css conflicts, but giant thanks to the blogdown team for making this workaround obsolete. See the [release notes including markdown comparisons here](https://blog.rstudio.com/2021/01/18/blogdown-v1.0/).
+
+
+```{r, results = "asis"}
+widget <- pltly1
+widgetfile <- 'pltly1.html'
+
+htmlwidgets::saveWidget(widget = widget
+                        , selfcontained = TRUE
+                        , file = widgetfile)
+
+cat(paste0('<iframe src= "', widgetfile, '" width="100%" height="400" style="border: none;"></iframe>'))
+```
+
+```{r dygraph}
+# Using dygraph
+# convert series to an xts object 
+tweets_ts <- xts::xts(tweets_per_day$num_tweets, order.by = tweets_per_day$tweet_date)
+# Create the dygraph
+library(dygraphs)
+
+dygraph1 <- dygraph(tweets_ts, main = "Daily Tweets for 'Philadelphia' (dygraph)") %>%
+  dySeries("V1", label = "Tweet Count")
+```
+
+```{r, echo = FALSE, results = "asis"}
+widget <- dygraph1
+widgetfile <- 'dygraph1.html'
+
+htmlwidgets::saveWidget(widget = widget
+                        , selfcontained = TRUE
+                        , file = widgetfile)
+
+cat(paste0('<iframe src= "', widgetfile, '" width="100%" height="400" style="border: none;"></iframe>'))
+```
+
+
+## Tweet Map
+
+And *where* are people tweeting?
+
+Of the `r nrow(tweets_df)` tweets that we have, `r tweets_df %>% filter(!is.na(lat) & !is.na(lng)) %>% nrow()` are geotagged. We'll plot those using [leaflet](https://rstudio.github.io/leaflet/). I'm assigning the tweet `text` to each point's `label` and `popup` arguments.  
+
+```{r mapsave}
+library(leaflet)
+
+tweet_map <- leaflet(tweets_df) %>%
+  addTiles() %>%
+  addMarkers(lng = ~lng
+                   , lat = ~lat
+                   , label = ~as.character(text)
+                   , popup = ~as.character(text)
+                   )
+```
+
+```{r, echo = FALSE, results = "asis"}
+widget <- tweet_map
+widgetfile <- 'tweet_map.html'
+
+htmlwidgets::saveWidget(widget = widget
+                        , selfcontained = TRUE
+                        , file = widgetfile)
+
+cat(paste0('<iframe src= "', widgetfile, '" width="100%" height="400" style="border: none;"></iframe>'))
+```
+
+
+## Sentiment analysis
+
+Now switching over to [tidytext](https://www.tidytextmining.com/topicmodeling.html)  
+
+> The function `get_sentiments()` allows us to get specific sentiment lexicons with the appropriate measures for each one.
+
+Preview some of the sentiment lexicons. You'll be prompted to download the `textdata` package and the `afinn`, `bing`, and `nrc` lexicons if you don't have them already.
+
+**[afinn](http://www2.imm.dtu.dk/pubdb/pubs/6010-full.html)** - assigns a numeric value to each word on a scale of -5 to +5  
+**[bing](https://www.cs.uic.edu/~liub/FBS/sentiment-analysis.html)** - binary assignment to each word, e.g. 'positive' or 'negative'  
+**[nrc](http://saifmohammad.com/WebPages/NRC-Emotion-Lexicon.htm)** - categorizes words into categories: positive, negative, anger, anticipation, disgust, fear, joy, sadness, surprise, and trust  
+
+```{r sentimentone}
+#install.packages("textdata")
+library(tidytext)
+
+get_sentiments("afinn") %>% head()
+get_sentiments("bing") %>% head()
+get_sentiments("nrc") %>% head()
+```
+
+
+Now tidy up the data and prepare it for analysis. If running this with the `austen_books()` example from the [tidytext docs](https://www.tidytextmining.com/sentiment.html), it's relatively straightforward:
+
+```{r sentimenttwo}
+library(stringr)
+library(janeaustenr)
+
+tidy_books <- austen_books() %>%
+  group_by(book) %>%
+  mutate(
+    linenumber = row_number(),
+    chapter = cumsum(str_detect(text, 
+                                regex("^chapter [\\divxlc]", 
+                                      ignore_case = TRUE)))) %>%
+  ungroup() %>%
+  unnest_tokens(word, text)
+
+tidy_books %>% head() %>% knitr::kable()
+```
+
+
+But I want to run this on tweets, so I need to reshape the data. I only executed one search for `philadelphia+philly`, so I'm going to build a dataframe from that. Though, we can run multiple searches and assign each search its own `book` value to enable comparisons and faceted plots later.  
+
+
+```{r sentimentthree}
+tweets_book <- cbind('Philadelphia', tweets_df$text) %>% data.frame()
+colnames(tweets_book) <- c('book', 'text')
+
+# Reformat the date - running above insists on converting the `tweet_date` value to its integer form.
+tweets_book$chapter <- tweets_df$tweet_date
+
+tidy_books <- tweets_book %>%
+  group_by(book) %>%
+  mutate(
+    linenumber = row_number()
+    ) %>%
+  ungroup() %>%
+  unnest_tokens(word, text)
+
+tidy_books %>% head() %>% knitr::kable()
+```
+
+
+Now the tweets are in a tidy format with one word per row.  
+
+Looking at the `nrc` lexicon, what are some of the "joy" words?
+
+```{r sentimentsfour}
+nrc_joy <- get_sentiments("nrc") %>% 
+  filter(sentiment == "joy")
+
+head(nrc_joy)
+```
+
+How many "joy" words do we have in our tweets? 
+
+_Note: When I last ran this code, the second word listed under "joy" was "white". I don't believe that the word "white" is synonymous with "joy" or should be interpreted as joyous, but I left it here to demonstrate an assumption that is built into this particular lexicon, and that we must rely on context to judge the sentiment of a word and to beware of these occurrences in our analyses. I plan to append this post with methods to evaluate words based on context._
+
+```{r sentimentsfive}
+tidy_books %>%
+  filter(book == "Philadelphia") %>%
+  inner_join(nrc_joy) %>%
+  count(word, sort = TRUE) %>%
+  head(10)
+```
+
+Using `tidyr`, we can continue to examine how sentiment changes throughout the book. This is more relevant to the novels examples from the docs, but I'm including it here as an exercise. This example will use the `bing` lexicon. We need some type of interval - the example creates an index from 80 line chunks, but I'm going to update this to use the `chapter` value, which now represents the date of each tweet allowing to see changes in sentiment over time.
+
+From the docs:  
+
+> ... First, we find a sentiment score for each word using the Bing lexicon and inner_join(). 
+> Next, we count up how many positive and negative words there are in defined sections of each book. We define an index here to keep track of where we are in the narrative; this index (using integer division) counts up sections of 80 lines of text.  
+> The %/% operator does integer division (x %/% y is equivalent to floor(x/y)) so the index keeps track of which 80-line section of text we are counting up negative and positive sentiment in.  
+> Small sections of text may not have enough words in them to get a good estimate of sentiment while really large sections can wash out narrative structure. For these books, using 80 lines works well, but this can vary depending on individual texts, how long the lines were to start with, etc. We then use spread() so that we have negative and positive sentiment in separate columns, and lastly calculate a net sentiment (positive - negative).  
+
+```{r sentimentssix}
+philly_sentiment <- tidy_books %>%
+  inner_join(get_sentiments("bing"), by = c("word" = "word")) %>%
+  #count(book, index = linenumber %/% 80, sentiment) %>% # 80-line tweet chunks
+  count(book, index = chapter, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+```
+
+```{r sentimentsplotone}
+ggplot(philly_sentiment) +
+  geom_col(aes(index, sentiment, fill = sentiment)) +
+  #facet_wrap(~book, ncol = 1, scales = "free_x") # apply if we'relooking across multiple books +
+  labs(title = "Sentiment of 'Philadelphia' Tweets") +
+  scale_fill_gradient2(low='red', mid='orange', high='navy') +
+  #scale_fill_viridis_c(option = "viridis") +
+  theme(legend.position = "none") +
+  xlab("") +
+  ylab("Sentiment")
+```
+
+
+
+
+## Comparing sentiments  
+
+Going to compare the different sentiment lexicons. Still writing the code as if there are multiple books (or search results) in the dataframe.  
+
+```{r compareone}
+philly_tweets <- tidy_books %>% 
+  filter(book == "Philadelphia")
+```
+
+
+Using `dplyr::inner_join()`, estimate the different sentiment values for each lexicon.
+
+```{r comparetwo}
+## afinn
+afinn <- philly_tweets %>% 
+  inner_join(get_sentiments("afinn"), by = c("word" = "word")) %>% 
+  #group_by(index = linenumber %/% 80) %>% # Can use 80-line chunks
+  group_by(index = chapter) %>% # or other type of index value, like date
+  summarise(sentiment = sum(value)) %>% 
+  mutate(method = "AFINN") %>%
+  ungroup()
+
+## rbinding bing and nrc
+bing_and_nrc <- bind_rows(
+  philly_tweets %>% 
+    inner_join(get_sentiments("bing"), by = c("word" = "word")) %>%
+    mutate(method = "Bing et al."),
+  philly_tweets %>% 
+    inner_join(get_sentiments("nrc") %>% 
+                 filter(sentiment %in% c("positive",
+                                         "negative"))
+    ) %>%
+    mutate(method = "NRC")) %>%
+  #count(method, index = linenumber %/% 80, sentiment) %>% # Can use 80-line chunks
+  count(method, index = chapter, sentiment) %>% # or other type of index value, like date
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+```
+
+
+Now combine and plot them together.  
+
+```{r sentimentplottwo}
+bind_rows(afinn, 
+          bing_and_nrc) %>%
+  ggplot(aes(index, sentiment, fill = method)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~method, ncol = 1, scales = "free_y") +
+  labs(title = "Sentiment of 'Philadelphia' Tweets - Lexicon Comparison") +
+  scale_fill_viridis_d(option = "viridis") +
+  theme(legend.position = "none") +
+  xlab("") +
+  ylab("Sentiment")
+```
+
+
+
+## Some routine checks  
+
+When comparing results across different lexicons, consider word counts and the ratio of positive words to negative words.  
+
+TODO: Update include and eval settings here - ok to keep in md doc but no need to knit them  
+
+```{r sentimentcounts}
+get_sentiments("nrc") %>% 
+  filter(sentiment %in% c("positive", "negative")) %>% 
+  count(sentiment)
+
+get_sentiments("bing") %>% 
+  count(sentiment)
+```
+
+```{r routineone}
+bing_word_counts <- tidy_books %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+
+bing_word_counts %>% head(10) %>% knitr::kable()
+```
+
+
+What are the top words driving sentiment score?  
+
+```{r sentplotfour}
+bing_word_counts %>%
+  group_by(sentiment) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(n, word, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  scale_fill_viridis_d(option = "viridis") +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(x = "Contribution to sentiment",
+       y = NULL)
+```
+
+
+
+## Wordclouds  
+
+I don't find wordclouds terrible useful, but they're not terrible for a background graphic or an attention grabber.
+
+First, let's add some custom stop words (i.e. words to exclude from the analysis). If you want to know why, run the next chunk and see how URLs (and obviously our original search terms) throw off our term frequency matrix.  
+
+```{r stopwordsone}
+custom_stop_words <- bind_rows(tibble(word = c('philadelphia', 'philly', 't.co', 'https', 'amp'),
+                                      lexicon = c("custom")),
+                               stop_words)
+
+custom_stop_words %>% head() %>% knitr::kable()
+```
+
+
+```{r wordcloudone}
+library(wordcloud)
+
+tidy_books %>%
+  anti_join(custom_stop_words) %>%
+  count(word) %>%
+  with(wordcloud(word, n, max.words = 100, col = brewer.pal(8, "Dark2")))
+```
+
+Going to compare the most popular positive and negative words using `comparison.cloud()`. Keep a look out for pronouns that get mistaken for positive or negative words (e.g. 'hurts' as in 'jalen hurts', though you might leave that in depending on how you feel about the Eagles qb situation).  
+
+```{r wordcloudtwo}
+library(reshape2)
+
+tidy_books %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
+  comparison.cloud(colors = c("orange", "navy"),
+                   max.words = 100)
+```
+
+
+## What about sentences?  
+
+Rather than assign sentiment to words, some algorithms attempt to derive sentiment from complete sentences, e.g. "I am not having a good day" should imply negative sentiment, not positive. Our tweets are already pretty succinct, so we can try to look at the entire tweek to make an assessment.    
+
+TODO: Fix how this is parsing sentences. See [docs](https://www.tidytextmining.com/sentiment.html#looking-at-units-beyond-just-words)  
+
+```{r sentences, include = FALSE, eval = FALSE}
+philly_sentences <- tibble(text = tweets_df$text) %>% 
+  #iconv(text, from = 'ASCII', to = 'latin1') %>%
+  unnest_tokens(sentence, text, token = 'sentences')
+
+philly_sentences$sentence[2] %>% knitr::kable()
+```
+
+Using sentences, or some other type of index, we can assign a sentiment value - not by word - but by an entire chapter.  
+
+Which chapter (date) had the *highest proportion* of positive words?
+
+```{r sentimentsix}
+bingpositive <- get_sentiments("bing") %>% 
+  filter(sentiment == "positive")
+
+wordcounts <- tidy_books %>%
+  group_by(book, chapter) %>%
+  summarize(words = n())
+
+tidy_books %>%
+  semi_join(bingpositive) %>%
+  group_by(book, chapter) %>%
+  summarize(positivewords = n()) %>%
+  left_join(wordcounts, by = c("book", "chapter")) %>%
+  mutate(positive_ratio = positivewords/words) %>%
+  filter(chapter != 0) %>%
+  top_n(1) %>%
+  ungroup()
+```
+
+
+
+```{r archetypesetup, echo = FALSE, message = FALSE, warning = FALSE}
+## Load frequently used packages for blog posts
+library('knitcitations') # for citations 
+library('BiocStyle') # for CRANpkg() Biocpkg() Githubpkg()
+library('devtools') # for session_info()
+
+## Load knitcitations with a clean bibliography
+cleanbib()
+cite_options(hyperlink = 'to.doc', citation_format = 'text', style = 'html')
+
+bib <- c(
+    'knitr' = citation('knitr'),
+    'rtweet' = citation('rtweet'),
+    'rmarkdown' = citation('rmarkdown'),
+    'NLP' = citation('NLP'),
+    'tm' = citation('tm'),
+    'RColorBrewer' = citation('RColorBrewer'),
+    'wordcloud' = citation('wordcloud'),
+    'topicmodels' = citation('topicmodels'),
+    'SnowballC' = citation('SnowballC'),
+    'config' = citation('config'),
+    'dplyr' = citation('dplyr'),
+    'tidytext' = citation('tidytext'),
+    'tidyr' = citation('tidyr'),
+    'ggplot2' = citation('ggplot2'),
+    'lubridate' = citation('lubridate'),
+    'readr' = citation('readr'),
+    'skimr' = citation('skimr'),
+    'blogdown' = citation('blogdown')[2],
+    'devtools' = citation('devtools'),
+    'knitcitations' = citation('knitcitations')
+)
+```
+
+
+## Acknowledgements
+
+
+This blog post was made possible thanks to:
+
+* `r Biocpkg('knitr')` `r citep(bib[['knitr']])`
+* `r Biocpkg('rtweet')` `r citep(bib[['rtweet']])`
+* `r Biocpkg('rmarkdown')` `r citep(bib[['rmarkdown']])`
+* `r Biocpkg('NLP')` `r citep(bib[['NLP']])`
+* `r Biocpkg('tm')` `r citep(bib[['tm']])`
+* `r Biocpkg('RColorBrewer')` `r citep(bib[['RColorBrewer']])`
+* `r Biocpkg('wordcloud')` `r citep(bib[['wordcloud']])`
+* `r Biocpkg('topicmodels')` `r citep(bib[['topicmodels']])`
+* `r Biocpkg('SnowballC')` `r citep(bib[['SnowballC']])`
+* `r Biocpkg('config')` `r citep(bib[['config']])`
+* `r Biocpkg('dplyr')` `r citep(bib[['dplyr']])`
+* `r Biocpkg('tidytext')` `r citep(bib[['tidytext']])`
+* `r Biocpkg('tidyr')` `r citep(bib[['tidyr']])`
+* `r Biocpkg('ggplot2')` `r citep(bib[['ggplot2']])`
+* `r Biocpkg('lubridate')` `r citep(bib[['lubridate']])`
+* `r Biocpkg('readr')` `r citep(bib[['readr']])`
+* `r Biocpkg('skimr')` `r citep(bib[['skimr']])`
+* `r Biocpkg('BiocStyle')` `r citep(bib[['BiocStyle']])`
+* `r CRANpkg('blogdown')` `r citep(bib[['blogdown']])`
+* `r CRANpkg('devtools')` `r citep(bib[['devtools']])`
+* `r CRANpkg('knitcitations')` `r citep(bib[['knitcitations']])`
+
+
+<!-- ## References -->
+
+<!-- ```{r bibliography, results = 'asis', echo = FALSE, cache = FALSE} -->
+<!-- ## Print bibliography -->
+<!-- bibliography(style = 'html') -->
+<!-- ``` -->
+
+<!-- ## Reproducibility -->
+
+<!-- ```{r reproducibility, echo = FALSE} -->
+<!-- ## Reproducibility info -->
+<!-- options(width = 120) -->
+<!-- session_info() -->
+<!-- ``` -->

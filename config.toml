@@ -1,78 +1,199 @@
-baseURL = "https://rjfranssen.io/"
+baseURL = "/"
+theme = "hugo-apero"
+languageCode = "en"
 title = "rjfranssen"
-enableRobotsTXT = true
-theme = "compose"
-enableGitInfo = true
-enableEmoji = true # added this
-ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "_cache$", "\\.yml$", "\\.knit\\.md$", "\\.utf8\\.md$"] # added this per blogdown recommendation
-
-disableKinds = ["taxonomy", "taxonomyTerm"]
-
-#[permalinks] # added this for new blog posts per blogdown recommendation
-#    post = "/:year/:month/:day/:slug/" # I'm taking this out; no reason to parse these out so far
-    
-#  menu items
-#[[menu.main]]
-#    name = "Docs"
-#    weight = 1
-#    url = "docs/"
-
-[[menu.main]]
-    name = "About"
-    weight = 1
-    url = "about/"
-
-[[menu.main]]
-    name = "Posts"
-    weight = 2
-    url = "post/"
-    
-[[menu.main]]
-    name = "Apps"
-    weight = 3
-    url = "app/"
-
-[[menu.main]]
-    name = "Links"
-    weight = 4
-    url = "links/list/"
+author = "Robert Franssen"
+copyright = "" # set to override the auto generated copyright using org info and now year
+googleAnalytics = ""
+disqusShortname = "" # see params.utterances to use utterances instead of Disqus
+metaDataFormat = "yaml"
+footnoteReturnLinkContents = "&#8617;" # ↩
+# set deliberately low for testing choose your preffered number based on the blog layout you've chosen
+paginate = 10
+preserveTaxonomyNames = true
+ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "_cache$", "\\.knit\\.md$", "\\.utf8\\.md$"]
+enableEmoji = true
 
 [markup]
-  [markup.goldmark]
-    [markup.goldmark.renderer]
-      unsafe = true
-    [markup.goldmark.extensions]
-      typographer = false
-  [markup.highlight]
-    codeFences = true
-    guessSyntax = false
-    hl_Lines = ""
-    lineNoStart = 1
-    lineNos = false
-    lineNumbersInTable = true
-    noClasses = false
-    style = "monokai"
-    tabWidth = 2
+  defaultMarkdownHandler = "goldmark"
+  [markup.goldmark.renderer]
+    unsafe = true  # Enable user to embed HTML snippets in Markdown content.
+    hardwraps = false
   [markup.tableOfContents]
-    endLevel = 4
+    startLevel = 1 # Changes from "2" to use spcanelon TOC
+    endLevel = 3 # Changes from "2" to use spcanelon TOC
     ordered = false
-    startLevel = 2
-
-# Everything below this are Site Params
+  [markup.highlight]
+    # one of: https://xyproto.github.io/splash/docs/
+    style = "github"
 
 [params]
-  author = "rjfranssen"
-  searchPlaceholder = "Search..."
-  repo = "https://github.com/rjfranssen/rjfranssen.github.io"
+  orgName = "rjfranssen"
+  orgLocal = ""
+  description = "A modern, beautiful, and easily configurable blog theme for Hugo."
+  favicon = "/favicons/favicon.ico" # see /static to overide
+  logo = "/img/rjfranssen-blowfish-wide.png"
+  mainSections = ["blog", "project"] #["blog", "project", "talk"]
+  navallcaps = true
+  # show/hide social icons in site header & footer
+  # configure social icons and links below in [[params.social]]
+  socialInHeader = false
+  socialInFooter = true
+  # Default image for social sharing and search engines.
+  # Place image file in `static` folder and specify image name here.
+  sharing_image = "/img/auto-beach-car-desert-276334.jpg"
+  # Twitter username (without @). Used when a visitor shares your site on Twitter.
+  twitter = "lochnessbobster"
 
-  time_format_blog = "Monday, January 02, 2006"
-  time_format_default = "January 2, 2006"
-  enableDarkMode = false # set to false to disable darkmode by default # user will still have the option to use dark mode
-  [params.logo]
-    lightMode = "rjfranssen-blowfish-wide-dark.png"
-    darkMode = "rjfranssen-blowfish-wide-dark.png"
+  # use a built-in color theme
+  # one of: forest / grayscale / peach / plum /
+  #         poppy / sky / violet / water
+  theme = ""
 
-  [params.source]
+  # or, leave theme empty & make your own palette
+  # see docs at https://hugo-apero.netlify.app/blog/color-themes/
+  # the custom scss file must be in the assets/ folder
+  # add the filename name here, without extension
+  # to use hex colors instead of named tachyons colors, include "hex" in filename
+  custom_theme = "splashdown_hex_theme"
+
+  # use an embedded font-family
+  # serif options: Fraunces / EB Garamond / Bitter
+  # sans-serif options: Commissioner / Atkinson Hyperlegible / Metropolis
+  # if you import your own fonts, name them here too
+  customtextFontFamily = "Ubuntu" # or Metrophobic
+  customheadingFontFamily = "Ubuntu" # or Metrophobic
+  # alternatively, leave empty and select basic font options: sans-serif or serif
+  # for more http://tachyons.io/docs/typography/font-family/
+  textFontFamily = "" # Helvetica is nice
+  headingFontFamily = ""
+
+  # Configuration of https://utteranc.es/ for comments
+  [params.utterances]
+    use_utterances = true
+    repo_name = "rjfranssen/rjf-apero"
+    issue_term = "pathname" # url, pathname, or title
+    theme = "boxy-light"
+    label = "comments :crystal_ball:"
+
+  # Configuration of math rendering
+  [params.math]
+    renderer = "katex" # one of "mathjax" / "katex"
+
+  # Social icons may appear on homepage and in site header or footer
+  # Configure show/hide above - add as many as you like below
+  # Icon pack "fab" includes brand icons, see: https://fontawesome.com/icons?d=gallery&s=brands&m=free
+  # Icon pack "fas" includes solid icons, see: https://fontawesome.com/icons?d=gallery&s=solid&m=free
+  # Icon pack "far" includes regular icons, see: https://fontawesome.com/icons?d=gallery&s=regular&m=free
+  [[params.social]]
+      icon      = "github" # icon name without the 'fa-'
+      icon_pack = "fab"
+      url       = "https://github.com/rjfranssen/rjf-apero"
+  #[[params.social]]
+  #    icon      = "facebook-square" # icon name without the 'fa-'
+  #    icon_pack = "fab"
+  #    url       = "https://www.facebook.com/hashtag/ap%C3%A9ro"
+  #[[params.social]]
+  #    icon      = "instagram" # icon name without the 'fa-'
+  #    icon_pack = "fab"
+  #    url       = "https://www.instagram.com/explore/tags/apero/"
+  [[params.social]]
+      icon      = "twitter" # icon name without the 'fa-'
+      icon_pack = "fab"
+      url       = "https://twitter.com/lochnessbobster"
+      #url       = "https://twitter.com/hashtag/lochnessbobster"
+  #[[params.social]]
+  #    icon      = "impactstory" # icon name without the 'fa-'
+  #    icon_pack = "ai"
+  #    url       = "https://impactstory.org/u/0000-0002-8082-1890"
+  #[[params.social]]
+  #    icon      = "orcid" # icon name without the 'fa-'
+  #    icon_pack = "ai"
+  #    url       = "http://orcid.org/0000-0002-8082-1890"
+  #[[params.social]]
+  #    icon      = "rss" # icon name without the 'fa-'
+  #    icon_pack = "fas"
+  #    url       = "/blog/index.xml"
+
+[taxonomies]
+  category = "categories"
+  series = "series"
+  tag = "tags"
+
+[menu]
+  # Configure header
+  [[menu.header]]
+    name = "About"
+    title = "About Blogophonic"
+    url = "/about/"
+    weight = 1
+  [[menu.header]]
+    name = "Posts"
+    title = "Posts"
+    url = "/blog/"
+    weight = 2
+  [[menu.header]]
+    name = "Projects"
+    title = "Projects and Applications"
+    url = "/project/"
+    weight = 3
+  [[menu.header]]
     name = "GitHub"
-    icon = "github.svg"
-    url = "https://github.com/rjfranssen/rjfranssen.github.io"
+    title = "GitHub"
+    url = "https://github.com/rjfranssen"
+    weight = 4
+  #[[menu.header]]
+  #  name = "Talks"
+  #  title = "Talks"
+  #  url = "/talk/"
+  #  weight = 4
+  #[[menu.header]]
+  #  name = "Study"
+  #  title = "Study"
+  #  url = "/collection/"
+  #  weight = 5
+  #[[menu.header]]
+  #  name = "Elements"
+  #  title = "Element Page"
+  #  url = "/elements/"
+  #  weight = 6
+
+  # Configure footer
+  [[menu.footer]]
+    name = "License"
+    title = "License"
+    url = "/license/"
+    weight = 1
+  [[menu.footer]]
+    name = "Contact"
+    title = "Contact form"
+    url = "/contact/"
+    weight = 2
+  #[[menu.footer]]
+  #  name = "Contributors"
+  #  title = "Contributors"
+  #  url = "/contributors/"
+  #  weight = 3
+
+# see https://gohugo.io/about/hugo-and-gdpr/
+[privacy]
+  [privacy.disqus]
+    disable = false
+  [privacy.googleAnalytics]
+    disable = false
+    anonymizeIP = true
+    respectDoNotTrack = true
+  [privacy.instagram]
+    disable = false
+    simple = true
+  [privacy.twitter]
+    disable = false
+    enableDNT = true
+    simple = false
+  [privacy.vimeo]
+    disable = false
+    enableDNT = true
+    simple = true
+  [privacy.youtube]
+    disable = false
+    privacyEnhanced = true

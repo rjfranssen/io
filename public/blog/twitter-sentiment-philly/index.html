@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr"><head>
+  
+                           
+     
+
+
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="generator" content="Hugo 0.88.1" />
+<title>It&#39;s Always #Sunny in Philadelphia | rjfranssen</title>
+
+
+<meta property="twitter:site" content="@lochnessbobster">
+<meta property="twitter:creator" content="@lochnessbobster">
+
+
+
+
+
+
+
+  
+    
+  
+<meta name="description" content="Walk through the Twitter API and the rtweet package and analyze sentiment across the Twitterverse.">
+
+
+<meta property="og:site_name" content="rjfranssen">
+<meta property="og:title" content="It&#39;s Always #Sunny in Philadelphia | rjfranssen">
+<meta property="og:description" content="Walk through the Twitter API and the rtweet package and analyze sentiment across the Twitterverse." />
+<meta property="og:type" content="page" />
+<meta property="og:url" content="/blog/twitter-sentiment-philly/" />
+<meta property="og:locale" content="en">
+
+
+
+
+    
+        <meta property="og:image" content="/blog/twitter-sentiment-philly/wordcloud_featured.png" >
+        <meta property="twitter:card" content="summary_large_image">
+        <meta name="twitter:image" content="/blog/twitter-sentiment-philly/wordcloud_featured.png" >
+    
+    
+  <meta itemprop="name" content="It&#39;s Always #Sunny in Philadelphia">
+<meta itemprop="description" content="This is a walkthrough of using the Twitter API with the rtweet R package. It borrows from a few difference sources, including:
+  ropensci/rtweet documentation  here  Tidy Text Mining with R  Twitter Data in R Using Rtweet: Analyze and Download Twitter Data  Comparing Twitter archives  Mining NASA metadata  Analyzing usenet text  Load libraries     Configure Twitter API access     There are a couple different ways to authenticate your session."><meta itemprop="datePublished" content="2020-12-30T00:00:00+00:00" />
+<meta itemprop="dateModified" content="2020-12-30T00:00:00+00:00" />
+<meta itemprop="wordCount" content="3311"><meta itemprop="image" content="/blog/twitter-sentiment-philly/wordcloud_featured.png">
+<meta itemprop="keywords" content="r,nlp,twitter," />
+  
+  <!--[if IE]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  <link rel="shortcut icon" href="/favicons/favicon.ico" type="image/x-icon">
+  <link rel="icon" href="/favicons/favicon.ico" type="image/x-icon">
+  
+  
+  <link rel="stylesheet" href="/style.main.min.d9554fb94d8eed9f0b53a43e8a8683492834125af6ece33cea8f9b2af158659b.css" integrity="sha256-2VVPuU2O7Z8LU6Q&#43;ioaDSSg0Elr27OM86o&#43;bKvFYZZs=" media="screen">
+  
+  
+  <script src="/panelset.min.078a92db9bd3228df502db3d9e0453c3cf3d910abe3f8deca0ad196c7071ad41.js" type="text/javascript"></script>
+  
+  
+  <script src="/main.min.e3f239a63f8fef3eb359ddeba8db9d60d003826af10cc5ff300bfd7771a96df9.js" type="text/javascript"></script>
+  
+  
+  <script src="/toc.min.272fa3955630f6cb446058a3c82414c1d32522ae6d48e2d07f3414c51275e316.js" type="text/javascript"></script>
+</head>
+<body>
+      <div class="grid-container single-sidebar">
+<header class="site-header pt4 pb2 mb4 bb b--transparent ph5 headroom z-max" role="banner">
+  <nav class="site-nav db dt-l w-100" role="navigation">
+    <a class="site-brand db dtc-l v-mid link no-underline w-100 w-33-l tc tl-l" href="/" title="Home">
+      <img src="/img/rjfranssen-blowfish-wide.png" class="dib db-l h2 w-auto" alt="rjfranssen">
+    </a>
+    <div class="site-links db dtc-l v-mid w-100 w-47-l tc tr-l mt3 mt0-l ttu tracked">
+      
+        
+        
+        
+      <a class="link f6 f5-l dib pv1 ph2 " href="/about/" title="About Blogophonic">About</a>
+      
+        
+        
+        
+      <a class="link f6 f5-l dib pv1 ph2 active" href="/blog/" title="Posts">Posts</a>
+      
+        
+        
+        
+      <a class="link f6 f5-l dib pv1 ph2 " href="/project/" title="Projects and Applications">Projects</a>
+      
+        
+        
+        
+      <a class="link f6 f5-l dib pv1 ph2 " href="https://github.com/rjfranssen" title="GitHub">GitHub</a>
+      
+      
+    </div>
+  </nav>
+</header>
+
+<main class="page-main pa4" role="main">
+  <section class="page-content mw7 center">
+    <article class="post-content pa0 pr3-l">
+      <header class="post-header">
+        <h1 class="f1 lh-solid measure-narrow mb3 fw4">It&#39;s Always #Sunny in Philadelphia</h1>
+        <h4 class="f4 mt0 mb4 lh-title measure">Walk through the Twitter API and the rtweet package and analyze sentiment across the Twitterverse.</h4>
+        <p class="f6 measure lh-copy mv1">By Robert Franssen in <a href="/categories/natural-language-processing">natural language processing</a> </p>
+        <p class="f7 db mv0 ttu">December 30, 2020</p>
+      </header>
+      <section class="post-body pt5 pb4">
+        <p>This is a walkthrough of using the Twitter API with the <code>rtweet</code> R package. It borrows from a few difference sources, including:</p>
+<ul>
+<li>
+<a href="https://github.com/ropensci/rtweet" target="_blank" rel="noopener">ropensci/rtweet documentation</a></li>
+<li>
+<a href="https://gist.github.com/bryangoodrich/7b5ef683ce8db592669e" target="_blank" rel="noopener">here</a></li>
+<li>
+<a href="https://www.tidytextmining.com/topicmodeling.html" target="_blank" rel="noopener">Tidy Text Mining with R</a></li>
+<li>
+<a href="https://www.earthdatascience.org/courses/earth-analytics/get-data-using-apis/use-twitter-api-r/" target="_blank" rel="noopener">Twitter Data in R Using Rtweet: Analyze and Download Twitter Data</a></li>
+<li>
+<a href="https://www.tidytextmining.com/twitter.html" target="_blank" rel="noopener">Comparing Twitter archives</a></li>
+<li>
+<a href="https://www.tidytextmining.com/nasa.html" target="_blank" rel="noopener">Mining NASA metadata</a></li>
+<li>
+<a href="https://www.tidytextmining.com/usenet.html" target="_blank" rel="noopener">Analyzing usenet text</a></li>
+</ul>
+
+
+
+
+<h2 id="load-libraries">Load libraries
+  <a href="#load-libraries"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+
+
+
+
+<h2 id="configure-twitter-api-access">Configure Twitter API access
+  <a href="#configure-twitter-api-access"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>There are a couple different ways to authenticate your session. The <code>rtweet</code> package makes this pretty easy by enabling browser-based authentication. I prefer to authenticate in code. Check the <code>rtweet</code> vignette for connection options.</p>
+<p>What I did: Head over to the 
+<a href="https://developer.twitter.com/en/apply-for-access" target="_blank" rel="noopener">Twitter Developer</a> site and requested a developer account to gain access to Twitter APIs and tools.</p>
+<p>Then I used a <code>config.yml</code> to store my keys. The <code>config</code> package a good way to import keys and passwords without making them publc (just make sure they&rsquo;re covered by your <code>.gitignore</code> file!). Check out the 
+<a href="https://cran.r-project.org/web/packages/config/vignettes/introduction.html" target="_blank" rel="noopener">documentation</a>. <em>Note: If using Hugo and don&rsquo;t want it swept up into your <code>public</code> directory, you can also add <code>config.yml</code> to the <code>ignoreFiles</code> parameter in the <code>config.toml</code></em>.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">config <span style="color:#000;font-weight:bold">&lt;-</span> config<span style="color:#000;font-weight:bold">::</span><span style="color:#900;font-weight:bold">get</span>(file <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#39;config.yml&#39;</span>)
+
+<span style="color:#998;font-style:italic">## authenticate via web browser</span>
+token <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">create_token</span>(
+  app <span style="color:#000;font-weight:bold">=</span> config<span style="color:#000;font-weight:bold">$</span>app,
+  consumer_key <span style="color:#000;font-weight:bold">=</span> config<span style="color:#000;font-weight:bold">$</span>apikey,
+  consumer_secret <span style="color:#000;font-weight:bold">=</span> config<span style="color:#000;font-weight:bold">$</span>apikeysecret,
+  access_token <span style="color:#000;font-weight:bold">=</span> config<span style="color:#000;font-weight:bold">$</span>accesstoken,
+  access_secret <span style="color:#000;font-weight:bold">=</span> config<span style="color:#000;font-weight:bold">$</span>accesstokensecret)
+</code></pre></div>
+
+
+
+<h2 id="query-the-tweets">Query the Tweets!
+  <a href="#query-the-tweets"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>Going to ask for the most recent 2000.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#998;font-style:italic"># Search tweets using rtweet search function</span>
+tweets_df <span style="color:#000;font-weight:bold">&lt;-</span> rtweet<span style="color:#000;font-weight:bold">::</span><span style="color:#900;font-weight:bold">search_tweets</span>(
+  q <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#39;philadelphia philly&#39;</span>
+  , n <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">2000</span>
+  , include_rts <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">FALSE</span>
+  , type <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#39;recent&#39;</span>
+  <span style="color:#998;font-style:italic">#, geocode = &#34;37.78, -122.40, 1mi&#34;</span>
+  <span style="color:#998;font-style:italic">#, retryonratelimit = TRUE</span>
+  <span style="color:#998;font-style:italic">#, parse = FALSE</span>
+  <span style="color:#998;font-style:italic">#, lang = &#39;en&#39; </span>
+  <span style="color:#998;font-style:italic"># ... see Twitter&#39;s REST API for more search parameters</span>
+)
+
+<span style="color:#998;font-style:italic">## Create lat/lng variables using all available tweet and profile geo-location data</span>
+tweets_df <span style="color:#000;font-weight:bold">&lt;-</span> rtweet<span style="color:#000;font-weight:bold">::</span><span style="color:#900;font-weight:bold">lat_lng</span>(tweets_df)
+
+<span style="color:#998;font-style:italic">## Also going to create some friendlier date variables;`created_at` is a `POSIXct` type that requires a bit of tender loving care. WIll still keep the `created_at` value, which works great with `dygraphs` and just fine with `ggplot2`, but I want to be able to group by date variables.</span>
+tweets_df<span style="color:#000;font-weight:bold">$</span>tweet_datetime <span style="color:#000;font-weight:bold">&lt;-</span> tweets_df<span style="color:#000;font-weight:bold">$</span>created_at
+tweets_df<span style="color:#000;font-weight:bold">$</span>tweet_date <span style="color:#000;font-weight:bold">&lt;-</span> tweets_df<span style="color:#000;font-weight:bold">$</span>created_at <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">as.POSIXlt</span>() <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">as.Date</span>() <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">ymd</span>()
+tweets_df<span style="color:#000;font-weight:bold">$</span>tweet_year <span style="color:#000;font-weight:bold">&lt;-</span> tweets_df<span style="color:#000;font-weight:bold">$</span>created_at <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">as.POSIXlt</span>() <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">as.Date</span>() <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">year</span>()
+tweets_df<span style="color:#000;font-weight:bold">$</span>tweet_month <span style="color:#000;font-weight:bold">&lt;-</span> tweets_df<span style="color:#000;font-weight:bold">$</span>created_at <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">as.POSIXlt</span>() <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">as.Date</span>() <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">month</span>()
+tweets_df<span style="color:#000;font-weight:bold">$</span>tweet_day <span style="color:#000;font-weight:bold">&lt;-</span> tweets_df<span style="color:#000;font-weight:bold">$</span>created_at <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">as.POSIXlt</span>() <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">as.Date</span>() <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">day</span>()
+</code></pre></div><p>Optionally, save this df to a local directory so you come back to this later without having to hit the Twitter API; <code>Rds</code> and <code>Rdata</code> files load super fast. You can also add these file types to your <code>.gitignore</code> and <code>config.toml</code> if you don&rsquo;t want to push them to your online git repo.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#900;font-weight:bold">saveRDS</span>(tweets_df, file <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;tweets_df.Rds&#34;</span>, compress <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#39;xz&#39;</span>)
+</code></pre></div><p>Reading back in the <code>.Rds</code> file..</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tweets_df <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">readRDS</span>(<span style="color:#d14">&#34;tweets_df.Rds&#34;</span>)
+
+tweets_df <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">head</span>()
+<span style="color:#998;font-style:italic">## # A tibble: 6 x 97</span>
+<span style="color:#998;font-style:italic">##   user_id  status_id           created_at          screen_name  text      source</span>
+<span style="color:#998;font-style:italic">##   &lt;chr&gt;    &lt;chr&gt;               &lt;dttm&gt;              &lt;chr&gt;        &lt;chr&gt;     &lt;chr&gt; </span>
+<span style="color:#998;font-style:italic">## 1 15755669 1352012085891379200 2021-01-20 21:56:15 NBCPhiladel~ Where wa~ Socia~</span>
+<span style="color:#998;font-style:italic">## 2 15755669 1351285671613313027 2021-01-18 21:49:44 NBCPhiladel~ Presiden~ Socia~</span>
+<span style="color:#998;font-style:italic">## 3 15755669 1350143610642178051 2021-01-15 18:11:35 NBCPhiladel~ JUST IN:~ Socia~</span>
+<span style="color:#998;font-style:italic">## 4 15755669 1351645424705294336 2021-01-19 21:39:16 NBCPhiladel~ UPDATE: ~ Socia~</span>
+<span style="color:#998;font-style:italic">## 5 15755669 1349945940740866048 2021-01-15 05:06:07 NBCPhiladel~ Philadel~ Socia~</span>
+<span style="color:#998;font-style:italic">## 6 15755669 1349821665010712583 2021-01-14 20:52:18 NBCPhiladel~ The Pa. ~ Socia~</span>
+<span style="color:#998;font-style:italic">## # ... with 91 more variables: display_text_width &lt;dbl&gt;,</span>
+<span style="color:#998;font-style:italic">## #   reply_to_status_id &lt;chr&gt;, reply_to_user_id &lt;chr&gt;,</span>
+<span style="color:#998;font-style:italic">## #   reply_to_screen_name &lt;chr&gt;, is_quote &lt;lgl&gt;, is_retweet &lt;lgl&gt;,</span>
+<span style="color:#998;font-style:italic">## #   favorite_count &lt;int&gt;, retweet_count &lt;int&gt;, quote_count &lt;int&gt;,</span>
+<span style="color:#998;font-style:italic">## #   reply_count &lt;int&gt;, hashtags &lt;list&gt;, symbols &lt;list&gt;, urls_url &lt;list&gt;,</span>
+<span style="color:#998;font-style:italic">## #   urls_t.co &lt;list&gt;, urls_expanded_url &lt;list&gt;, media_url &lt;list&gt;,</span>
+<span style="color:#998;font-style:italic">## #   media_t.co &lt;list&gt;, media_expanded_url &lt;list&gt;, media_type &lt;list&gt;, ...</span>
+</code></pre></div>
+
+
+
+<h2 id="examining-data">Examining data
+  <a href="#examining-data"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>Now going to identify a few basic things, but first, this df has 92 columns. What are some of the columns that we&rsquo;re most likely to use? The <code>skimr</code> package is <strong>really</strong> good at doing this and I often use it in addition to <code>summary()</code>.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#998;font-style:italic">#summary(tweet_df)</span>
+<span style="color:#900;font-weight:bold">skim</span>(tweets_df)
+</code></pre></div><p>And what does the table look like?</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tweets_df <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">select</span>(
+  <span style="color:#998;font-style:italic"># About the tweet</span>
+  text
+  , lang
+  , hashtags
+  , symbols
+  , favorite_count
+  , retweet_count
+  , lat
+  , lng
+  <span style="color:#998;font-style:italic"># About the user</span>
+  , name
+  , screen_name
+  , followers_count
+  , friends_count
+  , location
+  , description
+  , listed_count
+  , statuses_count
+  , created_at
+  , account_created_at
+  ) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">head</span>(<span style="color:#099">2</span>)
+<span style="color:#998;font-style:italic">## # A tibble: 2 x 18</span>
+<span style="color:#998;font-style:italic">##   text     lang  hashtags symbols favorite_count retweet_count   lat   lng name </span>
+<span style="color:#998;font-style:italic">##   &lt;chr&gt;    &lt;chr&gt; &lt;list&gt;   &lt;list&gt;           &lt;int&gt;         &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;</span>
+<span style="color:#998;font-style:italic">## 1 Where w~ en    &lt;chr [1~ &lt;chr [~              0             0    NA    NA NBC1~</span>
+<span style="color:#998;font-style:italic">## 2 Preside~ en    &lt;chr [1~ &lt;chr [~            100             6    NA    NA NBC1~</span>
+<span style="color:#998;font-style:italic">## # ... with 9 more variables: screen_name &lt;chr&gt;, followers_count &lt;int&gt;,</span>
+<span style="color:#998;font-style:italic">## #   friends_count &lt;int&gt;, location &lt;chr&gt;, description &lt;chr&gt;, listed_count &lt;int&gt;,</span>
+<span style="color:#998;font-style:italic">## #   statuses_count &lt;int&gt;, created_at &lt;dttm&gt;, account_created_at &lt;dttm&gt;</span>
+</code></pre></div>
+
+
+
+<h2 id="sample-stats--visualizations">Sample stats &amp; visualizations
+  <a href="#sample-stats--visualizations"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>What is our total tweet <em>count</em>?</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#900;font-weight:bold">nrow</span>(tweets_df) <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">print</span>()
+<span style="color:#998;font-style:italic">## [1] 1981</span>
+</code></pre></div><p>What is the most <em>favorited</em> tweet?</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tweets_df <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">slice_max</span>(favorite_count, n <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">1</span>) <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#998;font-style:italic"># can also use arrange()</span>
+  <span style="color:#900;font-weight:bold">select</span>(screen_name
+         , text
+         , favorite_count
+         , created_at)
+<span style="color:#998;font-style:italic">## # A tibble: 1 x 4</span>
+<span style="color:#998;font-style:italic">##   screen_name  text                           favorite_count created_at         </span>
+<span style="color:#998;font-style:italic">##   &lt;chr&gt;        &lt;chr&gt;                                   &lt;int&gt; &lt;dttm&gt;             </span>
+<span style="color:#998;font-style:italic">## 1 ScottPresler &#34;Unarmed man murdered while w~           2899 2021-01-18 17:35:01</span>
+</code></pre></div><p>What users are <em>tweeting the most</em>?</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">top_tweeters <span style="color:#000;font-weight:bold">&lt;-</span> tweets_df <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">group_by</span>(screen_name) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">summarize</span>(num_tweets <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">n</span>()) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">arrange</span>(<span style="color:#000;font-weight:bold">-</span>num_tweets) <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#998;font-style:italic"># can also use slice_max()</span>
+  <span style="color:#900;font-weight:bold">ungroup</span>() <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">head</span>(<span style="color:#099">5</span>)
+
+<span style="color:#900;font-weight:bold">ggplot</span>(top_tweeters) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">geom_histogram</span>(<span style="color:#900;font-weight:bold">aes</span>(x <span style="color:#000;font-weight:bold">=</span> screen_name, y <span style="color:#000;font-weight:bold">=</span> num_tweets, fill <span style="color:#000;font-weight:bold">=</span> screen_name), stat <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#39;identity&#39;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">theme_minimal</span>() <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">scale_fill_viridis_d</span>(option <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;viridis&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">labs</span>(title <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;What users are tweeting the most?&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">theme</span>(legend.position <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;none&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">xlab</span>(<span style="color:#d14">&#34;&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">ylab</span>(<span style="color:#d14">&#34;Number of Tweets&#34;</span>)
+</code></pre></div><p><img src="/blog/twitter-sentiment-philly/index_files/figure-html/statsthree-1.png" width="672" /></p>
+<p>In what <em>languages</em> are they tweeting?</p>
+<p>Languages are recorded here as 
+<a href="https://www.loc.gov/standards/iso639-2/php/code_list.php" target="_blank" rel="noopener">alpha-3 / ISO 639.2 codes</a>.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tweets_df <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">group_by</span>(lang) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">summarize</span>(num_tweets <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">n</span>()) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">arrange</span>(<span style="color:#000;font-weight:bold">-</span>num_tweets) <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#998;font-style:italic"># can also use slice_max()</span>
+  <span style="color:#900;font-weight:bold">head</span>(<span style="color:#099">5</span>)
+<span style="color:#998;font-style:italic">## # A tibble: 5 x 2</span>
+<span style="color:#998;font-style:italic">##   lang  num_tweets</span>
+<span style="color:#998;font-style:italic">##   &lt;chr&gt;      &lt;int&gt;</span>
+<span style="color:#998;font-style:italic">## 1 en          1907</span>
+<span style="color:#998;font-style:italic">## 2 und           44</span>
+<span style="color:#998;font-style:italic">## 3 cy             9</span>
+<span style="color:#998;font-style:italic">## 4 da             3</span>
+<span style="color:#998;font-style:italic">## 5 et             3</span>
+<span style="color:#998;font-style:italic"># ggplot(tweets_df) +</span>
+<span style="color:#998;font-style:italic">#   geom_bar(aes(x = lang, fill = lang))</span>
+</code></pre></div><p>What <em>platforms</em> are people using?</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">users_by_source <span style="color:#000;font-weight:bold">&lt;-</span> tweets_df <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">group_by</span>(source) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">summarize</span>(num_users <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">n_distinct</span>(user_id)) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">arrange</span>(<span style="color:#000;font-weight:bold">-</span>num_users) <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#998;font-style:italic"># can also use slice_max()</span>
+  <span style="color:#900;font-weight:bold">ungroup</span>() <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">head</span>(<span style="color:#099">10</span>)
+
+<span style="color:#900;font-weight:bold">ggplot</span>(users_by_source) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">geom_histogram</span>(<span style="color:#900;font-weight:bold">aes</span>(x <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">reorder</span>(source, num_users), y <span style="color:#000;font-weight:bold">=</span> num_users, fill <span style="color:#000;font-weight:bold">=</span> source), stat <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#39;identity&#39;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">scale_fill_viridis_d</span>(option <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;viridis&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">coord_flip</span>() <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">theme_gray</span>() <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">theme</span>(legend.position <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;none&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#998;font-style:italic">#theme(legend.title = element_blank()) +</span>
+  <span style="color:#900;font-weight:bold">labs</span>(title <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;Top 10 Twitter Platforms People are Using&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">xlab</span>(<span style="color:#d14">&#34;&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">ylab</span>(<span style="color:#d14">&#34;Number of Users&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">scale_y_continuous</span>(breaks <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">seq</span>(<span style="color:#099">0</span>, <span style="color:#099">450</span>, by<span style="color:#000;font-weight:bold">=</span><span style="color:#099">50</span>), limits <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">c</span>(<span style="color:#099">0</span>, <span style="color:#099">450</span>), expand <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">c</span>(<span style="color:#099">0</span>, <span style="color:#099">0</span>)) <span style="color:#000;font-weight:bold">+</span> <span style="color:#998;font-style:italic"># use expand() to remove empty space between axis and bars</span>
+  <span style="color:#900;font-weight:bold">geom_hline</span>(yintercept <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">seq</span>(<span style="color:#099">0</span>, <span style="color:#099">450</span>, by <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">25</span>), color <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#39;white&#39;</span>)
+</code></pre></div><p><img src="/blog/twitter-sentiment-philly/index_files/figure-html/statsfive-1.png" width="672" /></p>
+<p><em>How many</em> tweets per day?</p>
+<p>Going to create a chart with 
+<a href="https://plotly-r.com/improving-ggplotly.html" target="_blank" rel="noopener">ggplot2 and plotly</a> and a second one with 
+<a href="https://rstudio.github.io/dygraphs/index.html" target="_blank" rel="noopener">dygraphs for r</a>.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tweets_per_day <span style="color:#000;font-weight:bold">&lt;-</span> tweets_df <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">group_by</span>(tweet_date) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">summarize</span>(num_tweets <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">n</span>()) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">arrange</span>(<span style="color:#000;font-weight:bold">-</span>num_tweets) <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#998;font-style:italic"># can also use slice_max()</span>
+  <span style="color:#900;font-weight:bold">ungroup</span>()
+
+<span style="color:#998;font-style:italic"># Using ggplot + plotly</span>
+<span style="color:#900;font-weight:bold">library</span>(plotly)
+plt1 <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">ggplot</span>(tweets_per_day) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">geom_line</span>(<span style="color:#900;font-weight:bold">aes</span>(x <span style="color:#000;font-weight:bold">=</span> tweet_date, y <span style="color:#000;font-weight:bold">=</span> num_tweets)) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">scale_fill_viridis_d</span>(option <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;viridis&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">theme_gray</span>() <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">theme</span>(legend.position <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;none&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">labs</span>(title <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;Daily Tweets for &#39;Philadelphia&#39; (ggplot2 + plotly)&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">xlab</span>(<span style="color:#d14">&#34;&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">ylab</span>(<span style="color:#d14">&#34;Number of Tweets&#34;</span>) 
+
+pltly1 <span style="color:#000;font-weight:bold">&lt;-</span> plotly<span style="color:#000;font-weight:bold">::</span><span style="color:#900;font-weight:bold">ggplotly</span>(plt1)
+</code></pre></div><p><em>Note: Because I&rsquo;m writing this in .Rmarkdown, I use the below snippet to save the html widget to file and then bring it back in via an iframe. The main reason is that <code>.Rmarkdown</code> files are processed by <code>Pandoc</code>, output as <code>.markdown</code> and then processed by Hugo/Goldmark before becoming <code>html</code> files. The <code>.Rmd</code> files are processed by <code>Pandoc</code> and output as <code>html</code>; so, while the <code>.Rmd</code> is widget-friendly, I was losing the Hugo/Goldmark styling associated with my Hugo theme (e.g. TOCs, code highlighting). This is why all my posts that involve code are written in <code>.Rmarkdown</code>. See the 
+<a href="https://bookdown.org/yihui/blogdown/output-format.html" target="_blank" rel="noopener">blogdown docs</a> for a better explanation.</em></p>
+<p><strong>Update!</strong> Exporting and bringing an html file via an iframe is no longer necessary with <code>blogdown 1.0</code>! I&rsquo;m going to see the code as a reference if I need to do it again to avoid css conflicts, but giant thanks to the blogdown team for making this workaround obsolete. See the 
+<a href="https://blog.rstudio.com/2021/01/18/blogdown-v1.0/" target="_blank" rel="noopener">release notes including markdown comparisons here</a>.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">widget <span style="color:#000;font-weight:bold">&lt;-</span> pltly1
+widgetfile <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#d14">&#39;pltly1.html&#39;</span>
+
+htmlwidgets<span style="color:#000;font-weight:bold">::</span><span style="color:#900;font-weight:bold">saveWidget</span>(widget <span style="color:#000;font-weight:bold">=</span> widget
+                        , selfcontained <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">TRUE</span>
+                        , file <span style="color:#000;font-weight:bold">=</span> widgetfile)
+
+<span style="color:#900;font-weight:bold">cat</span>(<span style="color:#900;font-weight:bold">paste0</span>(<span style="color:#d14">&#39;&lt;iframe src= &#34;&#39;</span>, widgetfile, <span style="color:#d14">&#39;&#34; width=&#34;100%&#34; height=&#34;400&#34; style=&#34;border: none;&#34;&gt;&lt;/iframe&gt;&#39;</span>))
+</code></pre></div><iframe src= "pltly1.html" width="100%" height="400" style="border: none;"></iframe>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#998;font-style:italic"># Using dygraph</span>
+<span style="color:#998;font-style:italic"># convert series to an xts object </span>
+tweets_ts <span style="color:#000;font-weight:bold">&lt;-</span> xts<span style="color:#000;font-weight:bold">::</span><span style="color:#900;font-weight:bold">xts</span>(tweets_per_day<span style="color:#000;font-weight:bold">$</span>num_tweets, order.by <span style="color:#000;font-weight:bold">=</span> tweets_per_day<span style="color:#000;font-weight:bold">$</span>tweet_date)
+<span style="color:#998;font-style:italic"># Create the dygraph</span>
+<span style="color:#900;font-weight:bold">library</span>(dygraphs)
+
+dygraph1 <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">dygraph</span>(tweets_ts, main <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;Daily Tweets for &#39;Philadelphia&#39; (dygraph)&#34;</span>) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">dySeries</span>(<span style="color:#d14">&#34;V1&#34;</span>, label <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;Tweet Count&#34;</span>)
+</code></pre></div><iframe src= "dygraph1.html" width="100%" height="400" style="border: none;"></iframe>
+
+
+
+
+<h2 id="tweet-map">Tweet Map
+  <a href="#tweet-map"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>And <em>where</em> are people tweeting?</p>
+<p>Of the 1981 tweets that we have, 111 are geotagged. We&rsquo;ll plot those using 
+<a href="https://rstudio.github.io/leaflet/" target="_blank" rel="noopener">leaflet</a>. I&rsquo;m assigning the tweet <code>text</code> to each point&rsquo;s <code>label</code> and <code>popup</code> arguments.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#900;font-weight:bold">library</span>(leaflet)
+
+tweet_map <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">leaflet</span>(tweets_df) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">addTiles</span>() <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">addMarkers</span>(lng <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">~</span>lng
+                   , lat <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">~</span>lat
+                   , label <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">~</span><span style="color:#900;font-weight:bold">as.character</span>(text)
+                   , popup <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">~</span><span style="color:#900;font-weight:bold">as.character</span>(text)
+                   )
+</code></pre></div><iframe src= "tweet_map.html" width="100%" height="400" style="border: none;"></iframe>
+
+
+
+
+<h2 id="sentiment-analysis">Sentiment analysis
+  <a href="#sentiment-analysis"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>Now switching over to 
+<a href="https://www.tidytextmining.com/topicmodeling.html" target="_blank" rel="noopener">tidytext</a></p>
+<blockquote>
+<p>The function <code>get_sentiments()</code> allows us to get specific sentiment lexicons with the appropriate measures for each one.</p>
+</blockquote>
+<p>Preview some of the sentiment lexicons. You&rsquo;ll be prompted to download the <code>textdata</code> package and the <code>afinn</code>, <code>bing</code>, and <code>nrc</code> lexicons if you don&rsquo;t have them already.</p>
+<p><strong>
+<a href="http://www2.imm.dtu.dk/pubdb/pubs/6010-full.html" target="_blank" rel="noopener">afinn</a></strong> - assigns a numeric value to each word on a scale of -5 to +5<br>
+<strong>
+<a href="https://www.cs.uic.edu/~liub/FBS/sentiment-analysis.html" target="_blank" rel="noopener">bing</a></strong> - binary assignment to each word, e.g. &lsquo;positive&rsquo; or &lsquo;negative&rsquo;<br>
+<strong>
+<a href="http://saifmohammad.com/WebPages/NRC-Emotion-Lexicon.htm" target="_blank" rel="noopener">nrc</a></strong> - categorizes words into categories: positive, negative, anger, anticipation, disgust, fear, joy, sadness, surprise, and trust</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#998;font-style:italic">#install.packages(&#34;textdata&#34;)</span>
+<span style="color:#900;font-weight:bold">library</span>(tidytext)
+
+<span style="color:#900;font-weight:bold">get_sentiments</span>(<span style="color:#d14">&#34;afinn&#34;</span>) <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">head</span>()
+<span style="color:#998;font-style:italic">## # A tibble: 6 x 2</span>
+<span style="color:#998;font-style:italic">##   word       value</span>
+<span style="color:#998;font-style:italic">##   &lt;chr&gt;      &lt;dbl&gt;</span>
+<span style="color:#998;font-style:italic">## 1 abandon       -2</span>
+<span style="color:#998;font-style:italic">## 2 abandoned     -2</span>
+<span style="color:#998;font-style:italic">## 3 abandons      -2</span>
+<span style="color:#998;font-style:italic">## 4 abducted      -2</span>
+<span style="color:#998;font-style:italic">## 5 abduction     -2</span>
+<span style="color:#998;font-style:italic">## 6 abductions    -2</span>
+<span style="color:#900;font-weight:bold">get_sentiments</span>(<span style="color:#d14">&#34;bing&#34;</span>) <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">head</span>()
+<span style="color:#998;font-style:italic">## # A tibble: 6 x 2</span>
+<span style="color:#998;font-style:italic">##   word       sentiment</span>
+<span style="color:#998;font-style:italic">##   &lt;chr&gt;      &lt;chr&gt;    </span>
+<span style="color:#998;font-style:italic">## 1 2-faces    negative </span>
+<span style="color:#998;font-style:italic">## 2 abnormal   negative </span>
+<span style="color:#998;font-style:italic">## 3 abolish    negative </span>
+<span style="color:#998;font-style:italic">## 4 abominable negative </span>
+<span style="color:#998;font-style:italic">## 5 abominably negative </span>
+<span style="color:#998;font-style:italic">## 6 abominate  negative</span>
+<span style="color:#900;font-weight:bold">get_sentiments</span>(<span style="color:#d14">&#34;nrc&#34;</span>) <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">head</span>()
+<span style="color:#998;font-style:italic">## # A tibble: 6 x 2</span>
+<span style="color:#998;font-style:italic">##   word      sentiment</span>
+<span style="color:#998;font-style:italic">##   &lt;chr&gt;     &lt;chr&gt;    </span>
+<span style="color:#998;font-style:italic">## 1 abacus    trust    </span>
+<span style="color:#998;font-style:italic">## 2 abandon   fear     </span>
+<span style="color:#998;font-style:italic">## 3 abandon   negative </span>
+<span style="color:#998;font-style:italic">## 4 abandon   sadness  </span>
+<span style="color:#998;font-style:italic">## 5 abandoned anger    </span>
+<span style="color:#998;font-style:italic">## 6 abandoned fear</span>
+</code></pre></div><p>Now tidy up the data and prepare it for analysis. If running this with the <code>austen_books()</code> example from the 
+<a href="https://www.tidytextmining.com/sentiment.html" target="_blank" rel="noopener">tidytext docs</a>, it&rsquo;s relatively straightforward:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#900;font-weight:bold">library</span>(stringr)
+<span style="color:#900;font-weight:bold">library</span>(janeaustenr)
+
+tidy_books <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">austen_books</span>() <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">group_by</span>(book) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">mutate</span>(
+    linenumber <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">row_number</span>(),
+    chapter <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">cumsum</span>(<span style="color:#900;font-weight:bold">str_detect</span>(text, 
+                                <span style="color:#900;font-weight:bold">regex</span>(<span style="color:#d14">&#34;^chapter [\\divxlc]&#34;</span>, 
+                                      ignore_case <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">TRUE</span>)))) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">ungroup</span>() <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">unnest_tokens</span>(word, text)
+
+tidy_books <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">head</span>() <span style="color:#000;font-weight:bold">%&gt;%</span> knitr<span style="color:#000;font-weight:bold">::</span><span style="color:#900;font-weight:bold">kable</span>()
+</code></pre></div><table>
+<thead>
+<tr>
+<th style="text-align:left">book</th>
+<th style="text-align:right">linenumber</th>
+<th style="text-align:right">chapter</th>
+<th style="text-align:left">word</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Sense &amp; Sensibility</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0</td>
+<td style="text-align:left">sense</td>
+</tr>
+<tr>
+<td style="text-align:left">Sense &amp; Sensibility</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0</td>
+<td style="text-align:left">and</td>
+</tr>
+<tr>
+<td style="text-align:left">Sense &amp; Sensibility</td>
+<td style="text-align:right">1</td>
+<td style="text-align:right">0</td>
+<td style="text-align:left">sensibility</td>
+</tr>
+<tr>
+<td style="text-align:left">Sense &amp; Sensibility</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">0</td>
+<td style="text-align:left">by</td>
+</tr>
+<tr>
+<td style="text-align:left">Sense &amp; Sensibility</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">0</td>
+<td style="text-align:left">jane</td>
+</tr>
+<tr>
+<td style="text-align:left">Sense &amp; Sensibility</td>
+<td style="text-align:right">3</td>
+<td style="text-align:right">0</td>
+<td style="text-align:left">austen</td>
+</tr>
+</tbody>
+</table>
+<p>But I want to run this on tweets, so I need to reshape the data. I only executed one search for <code>philadelphia+philly</code>, so I&rsquo;m going to build a dataframe from that. Though, we can run multiple searches and assign each search its own <code>book</code> value to enable comparisons and faceted plots later.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tweets_book <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">cbind</span>(<span style="color:#d14">&#39;Philadelphia&#39;</span>, tweets_df<span style="color:#000;font-weight:bold">$</span>text) <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">data.frame</span>()
+<span style="color:#900;font-weight:bold">colnames</span>(tweets_book) <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">c</span>(<span style="color:#d14">&#39;book&#39;</span>, <span style="color:#d14">&#39;text&#39;</span>)
+
+<span style="color:#998;font-style:italic"># Reformat the date - running above insists on converting the `tweet_date` value to its integer form.</span>
+tweets_book<span style="color:#000;font-weight:bold">$</span>chapter <span style="color:#000;font-weight:bold">&lt;-</span> tweets_df<span style="color:#000;font-weight:bold">$</span>tweet_date
+
+tidy_books <span style="color:#000;font-weight:bold">&lt;-</span> tweets_book <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">group_by</span>(book) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">mutate</span>(
+    linenumber <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">row_number</span>()
+    ) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">ungroup</span>() <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">unnest_tokens</span>(word, text)
+
+tidy_books <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">head</span>() <span style="color:#000;font-weight:bold">%&gt;%</span> knitr<span style="color:#000;font-weight:bold">::</span><span style="color:#900;font-weight:bold">kable</span>()
+</code></pre></div><table>
+<thead>
+<tr>
+<th style="text-align:left">book</th>
+<th style="text-align:left">chapter</th>
+<th style="text-align:right">linenumber</th>
+<th style="text-align:left">word</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Philadelphia</td>
+<td style="text-align:left">2021-01-20</td>
+<td style="text-align:right">1</td>
+<td style="text-align:left">where</td>
+</tr>
+<tr>
+<td style="text-align:left">Philadelphia</td>
+<td style="text-align:left">2021-01-20</td>
+<td style="text-align:right">1</td>
+<td style="text-align:left">was</td>
+</tr>
+<tr>
+<td style="text-align:left">Philadelphia</td>
+<td style="text-align:left">2021-01-20</td>
+<td style="text-align:right">1</td>
+<td style="text-align:left">this</td>
+</tr>
+<tr>
+<td style="text-align:left">Philadelphia</td>
+<td style="text-align:left">2021-01-20</td>
+<td style="text-align:right">1</td>
+<td style="text-align:left">when</td>
+</tr>
+<tr>
+<td style="text-align:left">Philadelphia</td>
+<td style="text-align:left">2021-01-20</td>
+<td style="text-align:right">1</td>
+<td style="text-align:left">we</td>
+</tr>
+<tr>
+<td style="text-align:left">Philadelphia</td>
+<td style="text-align:left">2021-01-20</td>
+<td style="text-align:right">1</td>
+<td style="text-align:left">were</td>
+</tr>
+</tbody>
+</table>
+<p>Now the tweets are in a tidy format with one word per row.</p>
+<p>Looking at the <code>nrc</code> lexicon, what are some of the &ldquo;joy&rdquo; words?</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">nrc_joy <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">get_sentiments</span>(<span style="color:#d14">&#34;nrc&#34;</span>) <span style="color:#000;font-weight:bold">%&gt;%</span> 
+  <span style="color:#900;font-weight:bold">filter</span>(sentiment <span style="color:#000;font-weight:bold">==</span> <span style="color:#d14">&#34;joy&#34;</span>)
+
+<span style="color:#900;font-weight:bold">head</span>(nrc_joy)
+<span style="color:#998;font-style:italic">## # A tibble: 6 x 2</span>
+<span style="color:#998;font-style:italic">##   word          sentiment</span>
+<span style="color:#998;font-style:italic">##   &lt;chr&gt;         &lt;chr&gt;    </span>
+<span style="color:#998;font-style:italic">## 1 absolution    joy      </span>
+<span style="color:#998;font-style:italic">## 2 abundance     joy      </span>
+<span style="color:#998;font-style:italic">## 3 abundant      joy      </span>
+<span style="color:#998;font-style:italic">## 4 accolade      joy      </span>
+<span style="color:#998;font-style:italic">## 5 accompaniment joy      </span>
+<span style="color:#998;font-style:italic">## 6 accomplish    joy</span>
+</code></pre></div><p>How many &ldquo;joy&rdquo; words do we have in our tweets?</p>
+<p><em>Note: When I last ran this code, the second word listed under &ldquo;joy&rdquo; was &ldquo;white&rdquo;. I don&rsquo;t believe that the word &ldquo;white&rdquo; is synonymous with &ldquo;joy&rdquo; or should be interpreted as joyous, but I left it here to demonstrate an assumption that is built into this particular lexicon, and that we must rely on context to judge the sentiment of a word and to beware of these occurrences in our analyses. I plan to append this post with methods to evaluate words based on context.</em></p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tidy_books <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">filter</span>(book <span style="color:#000;font-weight:bold">==</span> <span style="color:#d14">&#34;Philadelphia&#34;</span>) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">inner_join</span>(nrc_joy) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">count</span>(word, sort <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">TRUE</span>) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">head</span>(<span style="color:#099">10</span>)
+<span style="color:#998;font-style:italic">## # A tibble: 10 x 2</span>
+<span style="color:#998;font-style:italic">##    word             n</span>
+<span style="color:#998;font-style:italic">##    &lt;chr&gt;        &lt;int&gt;</span>
+<span style="color:#998;font-style:italic">##  1 good            47</span>
+<span style="color:#998;font-style:italic">##  2 white           46</span>
+<span style="color:#998;font-style:italic">##  3 food            41</span>
+<span style="color:#998;font-style:italic">##  4 love            30</span>
+<span style="color:#998;font-style:italic">##  5 music           25</span>
+<span style="color:#998;font-style:italic">##  6 inauguration    24</span>
+<span style="color:#998;font-style:italic">##  7 vote            21</span>
+<span style="color:#998;font-style:italic">##  8 birthday        19</span>
+<span style="color:#998;font-style:italic">##  9 resources       19</span>
+<span style="color:#998;font-style:italic">## 10 grant           18</span>
+</code></pre></div><p>Using <code>tidyr</code>, we can continue to examine how sentiment changes throughout the book. This is more relevant to the novels examples from the docs, but I&rsquo;m including it here as an exercise. This example will use the <code>bing</code> lexicon. We need some type of interval - the example creates an index from 80 line chunks, but I&rsquo;m going to update this to use the <code>chapter</code> value, which now represents the date of each tweet allowing to see changes in sentiment over time.</p>
+<p>From the docs:</p>
+<blockquote>
+<p>&hellip; First, we find a sentiment score for each word using the Bing lexicon and inner_join(). 
+Next, we count up how many positive and negative words there are in defined sections of each book. We define an index here to keep track of where we are in the narrative; this index (using integer division) counts up sections of 80 lines of text.<br>
+The %/% operator does integer division (x %/% y is equivalent to floor(x/y)) so the index keeps track of which 80-line section of text we are counting up negative and positive sentiment in.<br>
+Small sections of text may not have enough words in them to get a good estimate of sentiment while really large sections can wash out narrative structure. For these books, using 80 lines works well, but this can vary depending on individual texts, how long the lines were to start with, etc. We then use spread() so that we have negative and positive sentiment in separate columns, and lastly calculate a net sentiment (positive - negative).</p>
+</blockquote>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">philly_sentiment <span style="color:#000;font-weight:bold">&lt;-</span> tidy_books <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">inner_join</span>(<span style="color:#900;font-weight:bold">get_sentiments</span>(<span style="color:#d14">&#34;bing&#34;</span>), by <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">c</span>(<span style="color:#d14">&#34;word&#34;</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;word&#34;</span>)) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#998;font-style:italic">#count(book, index = linenumber %/% 80, sentiment) %&gt;% # 80-line tweet chunks</span>
+  <span style="color:#900;font-weight:bold">count</span>(book, index <span style="color:#000;font-weight:bold">=</span> chapter, sentiment) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">spread</span>(sentiment, n, fill <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">0</span>) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">mutate</span>(sentiment <span style="color:#000;font-weight:bold">=</span> positive <span style="color:#000;font-weight:bold">-</span> negative)
+</code></pre></div><div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#900;font-weight:bold">ggplot</span>(philly_sentiment) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">geom_col</span>(<span style="color:#900;font-weight:bold">aes</span>(index, sentiment, fill <span style="color:#000;font-weight:bold">=</span> sentiment)) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#998;font-style:italic">#facet_wrap(~book, ncol = 1, scales = &#34;free_x&#34;) # apply if we&#39;relooking across multiple books +</span>
+  <span style="color:#900;font-weight:bold">labs</span>(title <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;Sentiment of &#39;Philadelphia&#39; Tweets&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">scale_fill_gradient2</span>(low<span style="color:#000;font-weight:bold">=</span><span style="color:#d14">&#39;red&#39;</span>, mid<span style="color:#000;font-weight:bold">=</span><span style="color:#d14">&#39;orange&#39;</span>, high<span style="color:#000;font-weight:bold">=</span><span style="color:#d14">&#39;navy&#39;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#998;font-style:italic">#scale_fill_viridis_c(option = &#34;viridis&#34;) +</span>
+  <span style="color:#900;font-weight:bold">theme</span>(legend.position <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;none&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">xlab</span>(<span style="color:#d14">&#34;&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">ylab</span>(<span style="color:#d14">&#34;Sentiment&#34;</span>)
+</code></pre></div><p><img src="/blog/twitter-sentiment-philly/index_files/figure-html/sentimentsplotone-1.png" width="672" /></p>
+
+
+
+
+<h2 id="comparing-sentiments">Comparing sentiments
+  <a href="#comparing-sentiments"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>Going to compare the different sentiment lexicons. Still writing the code as if there are multiple books (or search results) in the dataframe.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">philly_tweets <span style="color:#000;font-weight:bold">&lt;-</span> tidy_books <span style="color:#000;font-weight:bold">%&gt;%</span> 
+  <span style="color:#900;font-weight:bold">filter</span>(book <span style="color:#000;font-weight:bold">==</span> <span style="color:#d14">&#34;Philadelphia&#34;</span>)
+</code></pre></div><p>Using <code>dplyr::inner_join()</code>, estimate the different sentiment values for each lexicon.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#998;font-style:italic">## afinn</span>
+afinn <span style="color:#000;font-weight:bold">&lt;-</span> philly_tweets <span style="color:#000;font-weight:bold">%&gt;%</span> 
+  <span style="color:#900;font-weight:bold">inner_join</span>(<span style="color:#900;font-weight:bold">get_sentiments</span>(<span style="color:#d14">&#34;afinn&#34;</span>), by <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">c</span>(<span style="color:#d14">&#34;word&#34;</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;word&#34;</span>)) <span style="color:#000;font-weight:bold">%&gt;%</span> 
+  <span style="color:#998;font-style:italic">#group_by(index = linenumber %/% 80) %&gt;% # Can use 80-line chunks</span>
+  <span style="color:#900;font-weight:bold">group_by</span>(index <span style="color:#000;font-weight:bold">=</span> chapter) <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#998;font-style:italic"># or other type of index value, like date</span>
+  <span style="color:#900;font-weight:bold">summarise</span>(sentiment <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">sum</span>(value)) <span style="color:#000;font-weight:bold">%&gt;%</span> 
+  <span style="color:#900;font-weight:bold">mutate</span>(method <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;AFINN&#34;</span>) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">ungroup</span>()
+
+<span style="color:#998;font-style:italic">## rbinding bing and nrc</span>
+bing_and_nrc <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">bind_rows</span>(
+  philly_tweets <span style="color:#000;font-weight:bold">%&gt;%</span> 
+    <span style="color:#900;font-weight:bold">inner_join</span>(<span style="color:#900;font-weight:bold">get_sentiments</span>(<span style="color:#d14">&#34;bing&#34;</span>), by <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">c</span>(<span style="color:#d14">&#34;word&#34;</span> <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;word&#34;</span>)) <span style="color:#000;font-weight:bold">%&gt;%</span>
+    <span style="color:#900;font-weight:bold">mutate</span>(method <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;Bing et al.&#34;</span>),
+  philly_tweets <span style="color:#000;font-weight:bold">%&gt;%</span> 
+    <span style="color:#900;font-weight:bold">inner_join</span>(<span style="color:#900;font-weight:bold">get_sentiments</span>(<span style="color:#d14">&#34;nrc&#34;</span>) <span style="color:#000;font-weight:bold">%&gt;%</span> 
+                 <span style="color:#900;font-weight:bold">filter</span>(sentiment <span style="color:#000;font-weight:bold">%in%</span> <span style="color:#900;font-weight:bold">c</span>(<span style="color:#d14">&#34;positive&#34;</span>,
+                                         <span style="color:#d14">&#34;negative&#34;</span>))
+    ) <span style="color:#000;font-weight:bold">%&gt;%</span>
+    <span style="color:#900;font-weight:bold">mutate</span>(method <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;NRC&#34;</span>)) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#998;font-style:italic">#count(method, index = linenumber %/% 80, sentiment) %&gt;% # Can use 80-line chunks</span>
+  <span style="color:#900;font-weight:bold">count</span>(method, index <span style="color:#000;font-weight:bold">=</span> chapter, sentiment) <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#998;font-style:italic"># or other type of index value, like date</span>
+  <span style="color:#900;font-weight:bold">spread</span>(sentiment, n, fill <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">0</span>) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">mutate</span>(sentiment <span style="color:#000;font-weight:bold">=</span> positive <span style="color:#000;font-weight:bold">-</span> negative)
+</code></pre></div><p>Now combine and plot them together.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#900;font-weight:bold">bind_rows</span>(afinn, 
+          bing_and_nrc) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">ggplot</span>(<span style="color:#900;font-weight:bold">aes</span>(index, sentiment, fill <span style="color:#000;font-weight:bold">=</span> method)) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">geom_col</span>(show.legend <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">FALSE</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">facet_wrap</span>(<span style="color:#000;font-weight:bold">~</span>method, ncol <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">1</span>, scales <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;free_y&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">labs</span>(title <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;Sentiment of &#39;Philadelphia&#39; Tweets - Lexicon Comparison&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">scale_fill_viridis_d</span>(option <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;viridis&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">theme</span>(legend.position <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;none&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">xlab</span>(<span style="color:#d14">&#34;&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">ylab</span>(<span style="color:#d14">&#34;Sentiment&#34;</span>)
+</code></pre></div><p><img src="/blog/twitter-sentiment-philly/index_files/figure-html/sentimentplottwo-1.png" width="672" /></p>
+
+
+
+
+<h2 id="some-routine-checks">Some routine checks
+  <a href="#some-routine-checks"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>When comparing results across different lexicons, consider word counts and the ratio of positive words to negative words.</p>
+<p>TODO: Update include and eval settings here - ok to keep in md doc but no need to knit them</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#900;font-weight:bold">get_sentiments</span>(<span style="color:#d14">&#34;nrc&#34;</span>) <span style="color:#000;font-weight:bold">%&gt;%</span> 
+  <span style="color:#900;font-weight:bold">filter</span>(sentiment <span style="color:#000;font-weight:bold">%in%</span> <span style="color:#900;font-weight:bold">c</span>(<span style="color:#d14">&#34;positive&#34;</span>, <span style="color:#d14">&#34;negative&#34;</span>)) <span style="color:#000;font-weight:bold">%&gt;%</span> 
+  <span style="color:#900;font-weight:bold">count</span>(sentiment)
+<span style="color:#998;font-style:italic">## # A tibble: 2 x 2</span>
+<span style="color:#998;font-style:italic">##   sentiment     n</span>
+<span style="color:#998;font-style:italic">##   &lt;chr&gt;     &lt;int&gt;</span>
+<span style="color:#998;font-style:italic">## 1 negative   3324</span>
+<span style="color:#998;font-style:italic">## 2 positive   2312</span>
+<span style="color:#900;font-weight:bold">get_sentiments</span>(<span style="color:#d14">&#34;bing&#34;</span>) <span style="color:#000;font-weight:bold">%&gt;%</span> 
+  <span style="color:#900;font-weight:bold">count</span>(sentiment)
+<span style="color:#998;font-style:italic">## # A tibble: 2 x 2</span>
+<span style="color:#998;font-style:italic">##   sentiment     n</span>
+<span style="color:#998;font-style:italic">##   &lt;chr&gt;     &lt;int&gt;</span>
+<span style="color:#998;font-style:italic">## 1 negative   4781</span>
+<span style="color:#998;font-style:italic">## 2 positive   2005</span>
+</code></pre></div><div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">bing_word_counts <span style="color:#000;font-weight:bold">&lt;-</span> tidy_books <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">inner_join</span>(<span style="color:#900;font-weight:bold">get_sentiments</span>(<span style="color:#d14">&#34;bing&#34;</span>)) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">count</span>(word, sentiment, sort <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">TRUE</span>) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">ungroup</span>()
+
+bing_word_counts <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">head</span>(<span style="color:#099">10</span>) <span style="color:#000;font-weight:bold">%&gt;%</span> knitr<span style="color:#000;font-weight:bold">::</span><span style="color:#900;font-weight:bold">kable</span>()
+</code></pre></div><table>
+<thead>
+<tr>
+<th style="text-align:left">word</th>
+<th style="text-align:left">sentiment</th>
+<th style="text-align:right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">like</td>
+<td style="text-align:left">positive</td>
+<td style="text-align:right">73</td>
+</tr>
+<tr>
+<td style="text-align:left">corruption</td>
+<td style="text-align:left">negative</td>
+<td style="text-align:right">68</td>
+</tr>
+<tr>
+<td style="text-align:left">best</td>
+<td style="text-align:left">positive</td>
+<td style="text-align:right">61</td>
+</tr>
+<tr>
+<td style="text-align:left">good</td>
+<td style="text-align:left">positive</td>
+<td style="text-align:right">47</td>
+</tr>
+<tr>
+<td style="text-align:left">well</td>
+<td style="text-align:left">positive</td>
+<td style="text-align:right">45</td>
+</tr>
+<tr>
+<td style="text-align:left">free</td>
+<td style="text-align:left">positive</td>
+<td style="text-align:right">44</td>
+</tr>
+<tr>
+<td style="text-align:left">killed</td>
+<td style="text-align:left">negative</td>
+<td style="text-align:right">42</td>
+</tr>
+<tr>
+<td style="text-align:left">right</td>
+<td style="text-align:left">positive</td>
+<td style="text-align:right">37</td>
+</tr>
+<tr>
+<td style="text-align:left">great</td>
+<td style="text-align:left">positive</td>
+<td style="text-align:right">36</td>
+</tr>
+<tr>
+<td style="text-align:left">ready</td>
+<td style="text-align:left">positive</td>
+<td style="text-align:right">32</td>
+</tr>
+</tbody>
+</table>
+<p>What are the top words driving sentiment score?</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">bing_word_counts <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">group_by</span>(sentiment) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">top_n</span>(<span style="color:#099">10</span>) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">ungroup</span>() <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">mutate</span>(word <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">reorder</span>(word, n)) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">ggplot</span>(<span style="color:#900;font-weight:bold">aes</span>(n, word, fill <span style="color:#000;font-weight:bold">=</span> sentiment)) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">geom_col</span>(show.legend <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">FALSE</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">scale_fill_viridis_d</span>(option <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;viridis&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">facet_wrap</span>(<span style="color:#000;font-weight:bold">~</span>sentiment, scales <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;free_y&#34;</span>) <span style="color:#000;font-weight:bold">+</span>
+  <span style="color:#900;font-weight:bold">labs</span>(x <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;Contribution to sentiment&#34;</span>,
+       y <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">NULL</span>)
+</code></pre></div><p><img src="/blog/twitter-sentiment-philly/index_files/figure-html/sentplotfour-1.png" width="672" /></p>
+
+
+
+
+<h2 id="wordclouds">Wordclouds
+  <a href="#wordclouds"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>I don&rsquo;t find wordclouds terrible useful, but they&rsquo;re not terrible for a background graphic or an attention grabber.</p>
+<p>First, let&rsquo;s add some custom stop words (i.e. words to exclude from the analysis). If you want to know why, run the next chunk and see how URLs (and obviously our original search terms) throw off our term frequency matrix.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">custom_stop_words <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">bind_rows</span>(<span style="color:#900;font-weight:bold">tibble</span>(word <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">c</span>(<span style="color:#d14">&#39;philadelphia&#39;</span>, <span style="color:#d14">&#39;philly&#39;</span>, <span style="color:#d14">&#39;t.co&#39;</span>, <span style="color:#d14">&#39;https&#39;</span>, <span style="color:#d14">&#39;amp&#39;</span>),
+                                      lexicon <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">c</span>(<span style="color:#d14">&#34;custom&#34;</span>)),
+                               stop_words)
+
+custom_stop_words <span style="color:#000;font-weight:bold">%&gt;%</span> <span style="color:#900;font-weight:bold">head</span>() <span style="color:#000;font-weight:bold">%&gt;%</span> knitr<span style="color:#000;font-weight:bold">::</span><span style="color:#900;font-weight:bold">kable</span>()
+</code></pre></div><table>
+<thead>
+<tr>
+<th style="text-align:left">word</th>
+<th style="text-align:left">lexicon</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">philadelphia</td>
+<td style="text-align:left">custom</td>
+</tr>
+<tr>
+<td style="text-align:left">philly</td>
+<td style="text-align:left">custom</td>
+</tr>
+<tr>
+<td style="text-align:left">t.co</td>
+<td style="text-align:left">custom</td>
+</tr>
+<tr>
+<td style="text-align:left">https</td>
+<td style="text-align:left">custom</td>
+</tr>
+<tr>
+<td style="text-align:left">amp</td>
+<td style="text-align:left">custom</td>
+</tr>
+<tr>
+<td style="text-align:left">a</td>
+<td style="text-align:left">SMART</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#900;font-weight:bold">library</span>(wordcloud)
+
+tidy_books <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">anti_join</span>(custom_stop_words) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">count</span>(word) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">with</span>(<span style="color:#900;font-weight:bold">wordcloud</span>(word, n, max.words <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">100</span>, col <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">brewer.pal</span>(<span style="color:#099">8</span>, <span style="color:#d14">&#34;Dark2&#34;</span>)))
+</code></pre></div><p><img src="/blog/twitter-sentiment-philly/index_files/figure-html/wordcloudone-1.png" width="672" /></p>
+<p>Going to compare the most popular positive and negative words using <code>comparison.cloud()</code>. Keep a look out for pronouns that get mistaken for positive or negative words (e.g. &lsquo;hurts&rsquo; as in &lsquo;jalen hurts&rsquo;, though you might leave that in depending on how you feel about the Eagles qb situation).</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#900;font-weight:bold">library</span>(reshape2)
+
+tidy_books <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">inner_join</span>(<span style="color:#900;font-weight:bold">get_sentiments</span>(<span style="color:#d14">&#34;bing&#34;</span>)) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">count</span>(word, sentiment, sort <span style="color:#000;font-weight:bold">=</span> <span style="color:#000;font-weight:bold">TRUE</span>) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">acast</span>(word <span style="color:#000;font-weight:bold">~</span> sentiment, value.var <span style="color:#000;font-weight:bold">=</span> <span style="color:#d14">&#34;n&#34;</span>, fill <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">0</span>) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">comparison.cloud</span>(colors <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">c</span>(<span style="color:#d14">&#34;orange&#34;</span>, <span style="color:#d14">&#34;navy&#34;</span>),
+                   max.words <span style="color:#000;font-weight:bold">=</span> <span style="color:#099">100</span>)
+</code></pre></div><p><img src="/blog/twitter-sentiment-philly/index_files/figure-html/wordcloudtwo-1.png" width="672" /></p>
+
+
+
+
+<h2 id="what-about-sentences">What about sentences?
+  <a href="#what-about-sentences"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>Rather than assign sentiment to words, some algorithms attempt to derive sentiment from complete sentences, e.g. &ldquo;I am not having a good day&rdquo; should imply negative sentiment, not positive. Our tweets are already pretty succinct, so we can try to look at the entire tweek to make an assessment.</p>
+<p>TODO: Fix how this is parsing sentences. See 
+<a href="https://www.tidytextmining.com/sentiment.html#looking-at-units-beyond-just-words" target="_blank" rel="noopener">docs</a></p>
+<p>Using sentences, or some other type of index, we can assign a sentiment value - not by word - but by an entire chapter.</p>
+<p>Which chapter (date) had the <em>highest proportion</em> of positive words?</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">bingpositive <span style="color:#000;font-weight:bold">&lt;-</span> <span style="color:#900;font-weight:bold">get_sentiments</span>(<span style="color:#d14">&#34;bing&#34;</span>) <span style="color:#000;font-weight:bold">%&gt;%</span> 
+  <span style="color:#900;font-weight:bold">filter</span>(sentiment <span style="color:#000;font-weight:bold">==</span> <span style="color:#d14">&#34;positive&#34;</span>)
+
+wordcounts <span style="color:#000;font-weight:bold">&lt;-</span> tidy_books <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">group_by</span>(book, chapter) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">summarize</span>(words <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">n</span>())
+
+tidy_books <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">semi_join</span>(bingpositive) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">group_by</span>(book, chapter) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">summarize</span>(positivewords <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">n</span>()) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">left_join</span>(wordcounts, by <span style="color:#000;font-weight:bold">=</span> <span style="color:#900;font-weight:bold">c</span>(<span style="color:#d14">&#34;book&#34;</span>, <span style="color:#d14">&#34;chapter&#34;</span>)) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">mutate</span>(positive_ratio <span style="color:#000;font-weight:bold">=</span> positivewords<span style="color:#000;font-weight:bold">/</span>words) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">filter</span>(chapter <span style="color:#000;font-weight:bold">!=</span> <span style="color:#099">0</span>) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">top_n</span>(<span style="color:#099">1</span>) <span style="color:#000;font-weight:bold">%&gt;%</span>
+  <span style="color:#900;font-weight:bold">ungroup</span>()
+<span style="color:#998;font-style:italic">## # A tibble: 1 x 5</span>
+<span style="color:#998;font-style:italic">##   book         chapter    positivewords words positive_ratio</span>
+<span style="color:#998;font-style:italic">##   &lt;chr&gt;        &lt;date&gt;             &lt;int&gt; &lt;int&gt;          &lt;dbl&gt;</span>
+<span style="color:#998;font-style:italic">## 1 Philadelphia 2021-01-13           106  2478         0.0428</span>
+</code></pre></div>
+
+
+
+<h2 id="acknowledgements">Acknowledgements
+  <a href="#acknowledgements"><svg class="anchor-symbol" aria-hidden="true" height="26" width="26" viewBox="0 0 22 22" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 0h24v24H0z" fill="currentColor"></path>
+      <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"></path>
+    </svg></a>
+</h2>
+<p>This blog post was made possible thanks to:</p>
+<ul>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/knitr" target="_blank" rel="noopener">knitr</a></em></li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/rtweet" target="_blank" rel="noopener">rtweet</a></em> <a id='cite-rtweet-package'></a>(<a href='https://joss.theoj.org/papers/10.21105/joss.01829'>Kearney, 2019</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/rmarkdown" target="_blank" rel="noopener">rmarkdown</a></em></li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/NLP" target="_blank" rel="noopener">NLP</a></em> <a id='cite-Hornik_2020'></a>(<a href='https://CRAN.R-project.org/package=NLP'>Hornik, 2020</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/tm" target="_blank" rel="noopener">tm</a></em></li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/RColorBrewer" target="_blank" rel="noopener">RColorBrewer</a></em> <a id='cite-Neuwirth_2014'></a>(<a href='https://CRAN.R-project.org/package=RColorBrewer'>Neuwirth, 2014</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/wordcloud" target="_blank" rel="noopener">wordcloud</a></em> <a id='cite-Fellows_2018'></a>(<a href='https://CRAN.R-project.org/package=wordcloud'>Fellows, 2018</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/topicmodels" target="_blank" rel="noopener">topicmodels</a></em> <a id='cite-Grun_2011'></a>(<a href='https://doi.org/10.18637/jss.v040.i13'>Grün and Hornik, 2011</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/SnowballC" target="_blank" rel="noopener">SnowballC</a></em> <a id='cite-Bouchet-Valat_2020'></a>(<a href='https://CRAN.R-project.org/package=SnowballC'>Bouchet-Valat, 2020</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/config" target="_blank" rel="noopener">config</a></em> <a id='cite-Allaire_2020'></a>(<a href='https://CRAN.R-project.org/package=config'>Allaire, 2020</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/dplyr" target="_blank" rel="noopener">dplyr</a></em> <a id='cite-Wickham_2021'></a>(<a href='https://CRAN.R-project.org/package=dplyr'>Wickham, François, Henry, and Müller, 2021</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/tidytext" target="_blank" rel="noopener">tidytext</a></em> <a id='cite-Silge_2016'></a>(<a href='http://dx.doi.org/10.21105/joss.00037'>Silge and Robinson, 2016</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/tidyr" target="_blank" rel="noopener">tidyr</a></em> <a id='cite-Wickham_2021a'></a>(<a href='https://CRAN.R-project.org/package=tidyr'>Wickham, 2021</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/ggplot2" target="_blank" rel="noopener">ggplot2</a></em> <a id='cite-Wickham_2016'></a>(<a href='https://ggplot2.tidyverse.org'>Wickham, 2016</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/lubridate" target="_blank" rel="noopener">lubridate</a></em> <a id='cite-Grolemund_2011'></a>(<a href='https://www.jstatsoft.org/v40/i03/'>Grolemund and Wickham, 2011</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/readr" target="_blank" rel="noopener">readr</a></em> <a id='cite-Wickham_2021ab'></a>(<a href='https://CRAN.R-project.org/package=readr'>Wickham and Hester, 2021</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/skimr" target="_blank" rel="noopener">skimr</a></em> <a id='cite-Waring_2021'></a>(<a href='https://CRAN.R-project.org/package=skimr'>Waring, Quinn, McNamara, Arino de la Rubia, et al., 2021</a>)</li>
+<li><em>
+<a href="https://bioconductor.org/packages/3.13/BiocStyle" target="_blank" rel="noopener">BiocStyle</a></em></li>
+<li><em>
+<a href="https://CRAN.R-project.org/package=blogdown" target="_blank" rel="noopener">blogdown</a></em> <a id='cite-Xie_2017'></a>(<a href='https://bookdown.org/yihui/blogdown/'>Xie, Hill, and Thomas, 2017</a>)</li>
+<li><em>
+<a href="https://CRAN.R-project.org/package=devtools" target="_blank" rel="noopener">devtools</a></em> <a id='cite-Wickham_2021abc'></a>(<a href='https://CRAN.R-project.org/package=devtools'>Wickham, Hester, and Chang, 2021</a>)</li>
+<li><em>
+<a href="https://CRAN.R-project.org/package=knitcitations" target="_blank" rel="noopener">knitcitations</a></em> <a id='cite-Boettiger_2021'></a>(<a href='https://CRAN.R-project.org/package=knitcitations'>Boettiger, 2021</a>)</li>
+</ul>
+<!-- ## References -->
+<!-- ```{r bibliography, results = 'asis', echo = FALSE, cache = FALSE} -->
+<!-- ## Print bibliography -->
+<!-- bibliography(style = 'html') -->
+<!-- ``` -->
+<!-- ## Reproducibility -->
+<!-- ```{r reproducibility, echo = FALSE} -->
+<!-- ## Reproducibility info -->
+<!-- options(width = 120) -->
+<!-- session_info() -->
+<!-- ``` -->
+
+      </section>
+      <footer class="post-footer">
+        <div class="post-pagination dt w-100 mt4 mb2">
+  
+  
+    <a class="prev dtc pr2 tl v-top fw6"
+    href="/blog/custom-color-palette/">&larr; Create a Custom Color Palette in R</a>
+  
+  
+  
+</div>
+
+      </footer>
+    </article>
+    
+      
+<div class="post-comments pa0 pa4-l mt4">
+  
+  <script src="https://utteranc.es/client.js"
+          repo="rjfranssen/rjf-apero"
+          issue-term="pathname"
+          theme="boxy-light"
+          label="comments :crystal_ball:"
+          crossorigin="anonymous"
+          async
+          type="text/javascript">
+  </script>
+  
+</div>
+
+    
+  </section>
+</main>
+<aside class="page-sidebar" role="complementary">
+                         
+ 
+
+
+                       
+ 
+
+
+
+
+
+
+
+
+
+
+
+  <img src="/blog/sidebar-listing.jpg" class="db ma0">
+
+
+
+<div class="blog-info ph4 pt4 pb4 pb0-l">
+  
+
+  <h1 class="f3">Paddling throughb&hellip;</h1>
+  <p class="f6 lh-copy measure">These are a combination of exploratory analyses, articles, and utilities - mostly things that I want to remember. You&rsquo;re welcome to take a look and fire off any questions.</p>
+  <p class="f7 measure lh-copy i mh0-l">Written by Robert Franssen</p>
+
+
+  <small class="db f7"><a href="/blog/" class="dib fw7 ttu bt bw1 b--black-10 pt3">View recent posts</a></small>
+</div>
+
+
+  
+  <details open class="f6 fw7 input-reset">
+  <dl class="f6 lh-copy">
+    <dt class="fw7">Posted on:</dt>
+    <dd class="fw5 ml0">December 30, 2020</dd>
+  </dl>
+  <dl class="f6 lh-copy">
+    <dt class="fw7">Length:</dt>
+    <dd class="fw5 ml0">16 minute read, 3311 words</dd>
+  </dl>
+  
+  <dl class="f6 lh-copy">
+    <dt class="fw7">Categories:</dt>
+    <dd class="fw5 ml0"> <a href="/categories/natural-language-processing">natural language processing</a> </dd>
+  </dl>
+  
+  
+  
+  <dl class="f6 lh-copy">
+    <dt class="fw7">Tags:</dt>
+    <dd class="fw5 ml0"> <a href="/tags/r">r</a>  <a href="/tags/nlp">nlp</a>  <a href="/tags/twitter">twitter</a> </dd>
+  </dl>
+  
+  <dl class="f6 lh-copy">
+    <dt class="fw7">See Also:</dt>
+    
+    <dd class="fw5 ml0"><a href="/blog/parameteried-reporting-in-r/">Parameterized Reporting in R</a></dd>
+    
+    <dd class="fw5 ml0"><a href="/blog/create-map-based-on-us-zip-codes/">US Zip Code Choropleth</a></dd>
+    
+    <dd class="fw5 ml0"><a href="/blog/custom-color-palette/">Create a Custom Color Palette in R</a></dd>
+    
+  </dl>
+</details>
+
+                         
+
+
+
+<nav id="TableOfContents" class="sticky ph4 pb4 pt6" role="navigation">
+  <h2 class="mv0 f5 fw7 ttu tracked dib">On this page</h2>
+    <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li><a href="#load-libraries">Load libraries</a></li>
+        <li><a href="#configure-twitter-api-access">Configure Twitter API access</a></li>
+        <li><a href="#query-the-tweets">Query the Tweets!</a></li>
+        <li><a href="#examining-data">Examining data</a></li>
+        <li><a href="#sample-stats--visualizations">Sample stats &amp; visualizations</a></li>
+        <li><a href="#tweet-map">Tweet Map</a></li>
+        <li><a href="#sentiment-analysis">Sentiment analysis</a></li>
+        <li><a href="#comparing-sentiments">Comparing sentiments</a></li>
+        <li><a href="#some-routine-checks">Some routine checks</a></li>
+        <li><a href="#wordclouds">Wordclouds</a></li>
+        <li><a href="#what-about-sentences">What about sentences?</a></li>
+        <li><a href="#acknowledgements">Acknowledgements</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</nav>
+
+
+</aside>
+<footer class="site-footer pv4 bt b--transparent ph5" role="contentinfo">
+  <nav class="db dt-l w-100">
+    <p class="site-copyright f7 db dtc-l v-mid w-100 w-33-l tc tl-l pv2 pv0-l mv0 lh-copy">
+      &copy; 2021 rjfranssen
+      <span class="middot-divider"></span>
+      Made with <span xmlns:dct="http://purl.org/dc/terms/" property="dct:title"><a xmlns:dct="http://purl.org/dc/terms/" href="https://github.com/hugo-apero/" rel="dct:source">Hugo Apéro</a></span>.
+      <br />
+      
+Based on <span xmlns:dct="http://purl.org/dc/terms/" property="dct:title"><a xmlns:dct="http://purl.org/dc/terms/" href="https://github.com/formspree/blogophonic-hugo" rel="dct:source">Blogophonic</a></span> by <a xmlns:cc="http://creativecommons.org/ns#" href="https://formspree.io" property="cc:attributionName" rel="cc:attributionURL">Formspree</a>.
+    </p>
+    
+    <div class="site-social-links db dtc-l v-mid w-100 w-33-l tc pv2 pv0-l mv0">
+      <div class="social-icon-links" aria-hidden="true">
+  
+  
+    
+    
+    
+      
+    
+    
+    
+    
+    
+      
+    
+    <a class="link dib h1 w1 ml0 mr2 f6 o-90 glow" href="https://github.com/rjfranssen/rjf-apero" title="github" target="_blank" rel="noopener">
+      <i class="fab fa-github fa-lg fa-fw"></i>
+    </a>
+  
+    
+    
+    
+      
+    
+    
+    
+    
+    
+      
+    
+    <a class="link dib h1 w1 ml0 mr2 f6 o-90 glow" href="https://twitter.com/lochnessbobster" title="twitter" target="_blank" rel="noopener">
+      <i class="fab fa-twitter fa-lg fa-fw"></i>
+    </a>
+  
+</div>
+
+    </div>
+    
+    <div class="site-links f6 db dtc-l v-mid w-100 w-67-l tc tr-l pv2 pv0-l mv0">
+      
+      <a class="dib pv1 ph2 link" href="/license/" title="License">License</a>
+      
+      <a class="dib pv1 ph2 link" href="/contact/" title="Contact form">Contact</a>
+      
+    </div>
+  </nav>
+  
+    <script>
+
+    var i, text, code, codes = document.getElementsByTagName('code');
+    for (let i = 0; i < codes.length;) {
+      code = codes[i];
+      if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+        text = code.textContent;
+        if (/^\$[^$]/.test(text) && /[^$]\$$/.test(text)) {
+          text = text.replace(/^\$/, '\\(').replace(/\$$/, '\\)');
+          code.textContent = text;
+        }
+        if (/^\\\((.|\s)+\\\)$/.test(text) ||
+            /^\\\[(.|\s)+\\\]$/.test(text) ||
+            /^\$(.|\s)+\$$/.test(text) ||
+            /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+          code.outerHTML = code.innerHTML;  
+          continue;
+        }
+      }
+      i++;
+    }
+</script>
+
+  
+    
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.min.css" integrity="sha384-RZU/ijkSsFbcmivfdRBQDtwuwVqK7GMOw6IMvKyeWL2K5UAlyp6WonmB8m7Jd0Hn" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.min.js" integrity="sha384-pK1WpvzWVBQiP0/GjnvRxV4mOb0oxFuyRxJlk6vVw146n3egcN5C925NCP7a7BY8" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/contrib/auto-render.min.js" integrity="sha384-vZTG03m+2yp6N6BNi5iM4rW4oIwk5DfcNdFfxkk9ZWpDriOkXX8voJBFrAO7MpVl" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+
+
+
+    
+  
+  
+</footer>
+
+      </div>
+    </body>
+</html>

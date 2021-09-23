@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>helps on rjfranssen</title>
+    <link>/categories/helps/</link>
+    <description>Recent content in helps on rjfranssen</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Sat, 16 Jan 2021 00:00:00 +0000</lastBuildDate><atom:link href="/categories/helps/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Parameterized Reporting in R</title>
+      <link>/blog/parameteried-reporting-in-r/</link>
+      <pubDate>Sat, 16 Jan 2021 00:00:00 +0000</pubDate>
+      
+      <guid>/blog/parameteried-reporting-in-r/</guid>
+      <description>Just give me the code     Skip all this and jump to the parameterized-reporting-example.Rmd file in my parameterized-reporting repo.
+About parametrized reports     This is a parameterized report written in in R Markdown. It consists of a combination of text and code chunks and uses R, pandoc, and LaTeX to connect to a data source, create visualizations, and export a single file to html, pdf, or word without changing the code.</description>
+    </item>
+    
+  </channel>
+</rss>
